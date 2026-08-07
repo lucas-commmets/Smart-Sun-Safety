@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Sun Safety Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="sun-favicon.ico">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#fbc02d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sun Tracker">
+
+  
+</head>
+<body>
+
+    <header>
+        <h1>☀️ Sun Safety Tracker</h1>
+        <p>Live UV updates and automated protection alerts by Sunsafe Ambassadors</p>
+    </header>
+
+    <main class="container">
+        
+        <section class="card">
+            <h2>Live Location UV Status</h2>
+            <button id="loc-btn">📍 Connect Location & Check UV</button>
+            <div id="uv-display" class="uv-badge">--</div>
+            <p id="uv-status">Click above to detect your current location's UV index.</p>
+        </section>
+
+        <section class="card">
+            <h2>2-Hour Automated Reminders</h2>
+            <p>Enable alerts to check live UV levels and send a sunscreen reapplication notification every 2 hours (triggers only when UV is 3 or higher).</p>
+            
+            <button id="notify-btn">🔔 Turn On 2-Hour Reminders</button>
+            <p id="automation-status" class="status-active" style="display: none;"></p>
+        </section>
+
+        <section class="card">
+            <h2>The 5 SunSmart Rules</h2>
+            <ul class="sun-steps">
+                <li>👕 <strong>Slip</strong> on sun-protective clothing.</li>
+                <li>🧴 <strong>Slop</strong> on broad-spectrum SPF 50+ sunscreen.</li>
+                <li>🧢 <strong>Slap</strong> on a broad-brimmed hat.</li>
+                <li>🌳 <strong>Seek</strong> shade under trees or awnings.</li>
+                <li>🕶️ <strong>Slide</strong> on wrap-around sunglasses.</li>
+            </ul>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
