@@ -5,7 +5,7 @@ let alertIntervalTimer = null;
 
 // 2 hours in milliseconds (2 * 60 * 60 * 1000)
 // 💡 TEST TIP: Change this to 10000 (10 seconds) before it was (7200000) temporarily to test notifications without waiting 2 hours!
-const TWO_HOURS_MS = 10000; 
+const TWO_HOURS_MS = 7200000; 
 
 // DOM Elements
 const locBtn = document.getElementById('loc-btn');
