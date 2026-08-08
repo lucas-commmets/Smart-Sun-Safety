@@ -66,7 +66,7 @@ async function checkAndAlertUV(triggerType) {
     }
 
     // Send notification ONLY if UV is 3 or higher
-    if (uv >= 0 && Notification.permission === "granted") {
+    if (uv >= 3 && Notification.permission === "granted") {
         sendNotification(uv);
     }
 }
