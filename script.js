@@ -4,6 +4,7 @@ let userLng = null;
 let alertIntervalTimer = null;
 
 // 2 hours in milliseconds (2 * 60 * 60 * 1000)
+// 💡 TEST TIP: Change this to 10000 (10 seconds) temporarily to test notifications without waiting 2 hours!
 const TWO_HOURS_MS = 7200000; 
 
 // DOM Elements
@@ -66,14 +67,34 @@ async function checkAndAlertUV(triggerType) {
 
     // Send notification ONLY if UV is 3 or higher
     if (uv >= 3 && Notification.permission === "granted") {
-        new Notification("☀️ Sunscreen Reminder", {
-            body: `Current UV Index is ${uv}. It has been 2 hours—reapply your sunscreen if you're outdoors!`,
-            icon: "sun-icon-192.png"
-        });
+        sendNotification(uv);
     }
 }
 
-// 4. Enable Notifications & Start 2-Hour Loop
+// Helper function to send reliable notifications via Service Worker
+function sendNotification(uv) {
+    const title = "☀️ Sunscreen Reminder";
+    const options = {
+        body: typeof uv === 'number' 
+            ? `Current UV Index is ${uv}. It has been 2 hours—reapply your sunscreen if you're outdoors!` 
+            : `Automated UV alerts are active! We'll remind you every 2 hours when UV is 3 or higher.`,
+        icon: "sun-icon-192.png",
+        badge: "sun-icon-192.png",
+        vibrate: [200, 100, 200]
+    };
+
+    // Use Service Worker registration if available (works better in background/mobile)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, options);
+        });
+    } else {
+        // Desktop / Fallback notification
+        new Notification(title, options);
+    }
+}
+
+// 4. Enable Notifications & Start Loop
 notifyBtn.addEventListener('click', () => {
     if (!userLat || !userLng) {
         alert("Please click 'Connect Location' first so we know where to check UV levels!");
@@ -84,6 +105,8 @@ notifyBtn.addEventListener('click', () => {
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
                 startTwoHourTimer();
+                // Send an immediate confirmation notification so you know alerts are active!
+                sendNotification("Enabled");
             } else {
                 alert("Notifications were blocked in your browser settings.");
             }
@@ -92,10 +115,10 @@ notifyBtn.addEventListener('click', () => {
 });
 
 function startTwoHourTimer() {
-    // Clear any active timers to prevent duplicates
+    // Clear any existing timer to avoid overlapping loops
     if (alertIntervalTimer) clearInterval(alertIntervalTimer);
 
-    // Set the repeat interval to exactly 2 hours
+    // Set 2-hour repeat check
     alertIntervalTimer = setInterval(() => {
         checkAndAlertUV("2-Hour Check");
     }, TWO_HOURS_MS);
@@ -105,11 +128,12 @@ function startTwoHourTimer() {
     automationStatus.style.display = "block";
     automationStatus.textContent = "Status: Active! Checking UV every 2 hours (Alerts send if UV ≥ 3).";
 }
-    // Register Service Worker for PWA
+
+// 5. Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then((reg) => console.log('Service Worker registered successfully!', reg))
-      .catch((err) => console.error('Service Worker registration failed:', err));
-  });
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then((reg) => console.log('Service Worker registered successfully!', reg))
+            .catch((err) => console.error('Service Worker registration failed:', err));
+    });
 }
