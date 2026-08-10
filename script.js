@@ -545,7 +545,169 @@ $("reminderToggle")
     "click",
     toggleReminders
   );
+/* -----------------------------------------
+PWA INSTALL
+----------------------------------------- */
 
+let deferredInstallPrompt = null;
+
+const installCard =
+  $("installCard");
+
+const installButton =
+  $("installButton");
+
+
+/*
+Browser fires this when the PWA
+is installable.
+*/
+
+window.addEventListener(
+  "beforeinstallprompt",
+  (event) => {
+
+    /*
+    Prevent the browser from
+    showing its own mini-infobar.
+    */
+
+    event.preventDefault();
+
+
+    /*
+    Save the install prompt so
+    our button can use it.
+    */
+
+    deferredInstallPrompt =
+      event;
+
+
+    /*
+    Show our custom install card.
+    */
+
+    if (installCard) {
+
+      installCard.hidden =
+        false;
+
+    }
+
+  }
+);
+
+
+/*
+Install button clicked.
+*/
+
+if (installButton) {
+
+  installButton.addEventListener(
+    "click",
+    async () => {
+
+      if (!deferredInstallPrompt) {
+
+        /*
+        The browser hasn't made
+        installation available yet.
+        */
+
+        showToast(
+          "The app isn't ready to install yet."
+        );
+
+        return;
+
+      }
+
+
+      /*
+      Show the browser's
+      installation prompt.
+      */
+
+      deferredInstallPrompt.prompt();
+
+
+      /*
+      Wait for the user's choice.
+      */
+
+      const result =
+        await deferredInstallPrompt.userChoice;
+
+
+      console.log(
+        "PWA install choice:",
+        result.outcome
+      );
+
+
+      /*
+      The prompt can only be
+      used once.
+      */
+
+      deferredInstallPrompt =
+        null;
+
+
+      /*
+      Hide our button after
+      the prompt has been used.
+      */
+
+      if (installCard) {
+
+        installCard.hidden =
+          true;
+
+      }
+
+    }
+  );
+
+}
+
+
+/*
+The app has successfully
+been installed.
+*/
+
+window.addEventListener(
+  "appinstalled",
+  () => {
+
+    deferredInstallPrompt =
+      null;
+
+
+    if (installCard) {
+
+      installCard.hidden =
+        true;
+
+    }
+
+
+    if (
+      typeof showToast ===
+      "function"
+    ) {
+
+      showToast(
+        "Sun Safety Tracker installed! ☀️"
+      );
+
+    }
+
+  }
+);
 
 /* -----------------------------
    YEAR
