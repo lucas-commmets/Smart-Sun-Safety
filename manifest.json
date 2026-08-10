@@ -1,11 +1,31 @@
 {
   "name": "Sun Safety Tracker",
   "short_name": "Sun Safety",
-  "description": "Live UV updates and automated protection alerts by Sunsafe Ambassadors.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "description": "Live UV updates and automated sun protection reminders by Sunsafe Ambassadors.",
+  "start_url": "/Smart-Sun-Safety/",
+  "scope": "/Smart-Sun-Safety/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#f7f9fc",
-  "theme_color": "#ffb703"
+  "orientation": "portrait-primary",
+  "theme_color": "#0b7fab",
+  "background_color": "#f5fbff",
+  "lang": "en-AU",
+  "categories": [
+    "health",
+    "weather",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/Smart-Sun-Safety/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Smart-Sun-Safety/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
