@@ -1,89 +1,152 @@
+
+
 const SUPABASE_URL = "https://ndosqkrtkybeiafagjto.supabase.co";
 
-
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3EOT86U57-09W4m7BZq1Xw_tcL68Iiv";
-
-
+// Put your Supabase PUBLISHABLE key between the quotes.
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3EOT86U57-09W4m7BZq1Xw_tcL68Iiv"
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
 );
 
+
+
+
 let userLat = null;
 let userLng = null;
 let alertIntervalTimer = null;
 
+// 2 hours in milliseconds
+// TEST TIP: Use 10000 for 10 seconds while testing.
+const TWO_HOURS_MS = 7200000;
 
 
 
-// 💡 TEST TIP: Set to 10000 (10 seconds) during testing to see quick updates!
-const TWO_HOURS_MS = 7200000; 
 
-// DOM Elements
-const locBtn = document.getElementById('loc-btn');
-const uvDisplay = document.getElementById('uv-display');
-const uvStatus = document.getElementById('uv-status');
-const notifyBtn = document.getElementById('notify-btn');
-const automationStatus = document.getElementById('automation-status');
+const locBtn = document.getElementById("loc-btn");
+const uvDisplay = document.getElementById("uv-display");
+const uvStatus = document.getElementById("uv-status");
+const notifyBtn = document.getElementById("notify-btn");
+const automationStatus = document.getElementById("automation-status");
 
-// Helper function to get current position asynchronously
+
+
+
+// Put your VAPID PUBLIC key here.
+// Do NOT put your VAPID private key here.
+const VAPID_PUBLIC_KEY = "BJq31EW9LM_gGYk6wD7-yNdHbMZDCt4Pbc0kveTRSehHw1kVJQ9EunJnkdVsVWvjwxDhRjkeVyNfpN9tOqxK_EY"
+
+
+
+
 function updateLocationAndCheckUV(triggerLabel = "Routine Check") {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
+
         if ("geolocation" in navigator) {
-            uvStatus.textContent = "Updating location & checking UV...";
-            
+
+            uvStatus.textContent =
+                "Updating location & checking UV...";
+
             navigator.geolocation.getCurrentPosition(
+
                 async (position) => {
+
                     userLat = position.coords.latitude;
                     userLng = position.coords.longitude;
-                    uvStatus.textContent = "Location updated!";
-                    
-                    // Run the UV check with fresh coordinates
+
+                    uvStatus.textContent =
+                        "Location updated!";
+
                     await checkAndAlertUV(triggerLabel);
+
                     resolve();
                 },
-            (error) => {
-    console.warn("Geolocation error or denied:", error);
 
-    uvStatus.textContent = "Location access denied.";
+                (error) => {
 
-    if (userLat !== null && userLng !== null) {
-        checkAndAlertUV(triggerLabel);
-    } else {
-        setTimeout(() => {
-            if (confirm("Location was denied. Would you like to enter your location manually?")) {
-                manualLocation();
-            }
-        }, 100);
-    }
+                    console.warn(
+                        "Geolocation error or denied:",
+                        error
+                    );
 
-    resolve();
-},
-                { enableHighAccuracy: true, timeout: 10000 }
+                    uvStatus.textContent =
+                        "Location access denied.";
+
+                    // Use last known location if available
+                    if (
+                        userLat !== null &&
+                        userLng !== null
+                    ) {
+
+                        checkAndAlertUV(triggerLabel);
+
+                    } else {
+
+                        setTimeout(() => {
+
+                            if (
+                                confirm(
+                                    "Location was denied. Would you like to enter your location manually?"
+                                )
+                            ) {
+
+                                manualLocation();
+
+                            }
+
+                        }, 100);
+                    }
+
+                    resolve();
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000
+                }
             );
+
         } else {
-            uvStatus.textContent = "Geolocation is not supported by your browser.";
+
+            uvStatus.textContent =
+                "Geolocation is not supported by your browser.";
+
             resolve();
         }
     });
 }
+
+
+
+
 async function manualLocation() {
-    const location = prompt("Enter your city or suburb:");
+
+    const location = prompt(
+        "Enter your city or suburb:"
+    );
 
     if (!location) return;
 
-    uvStatus.textContent = "Finding location...";
+    uvStatus.textContent =
+        "Finding location...";
 
     try {
+
         const response = await fetch(
             `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`
         );
 
         const data = await response.json();
 
-        if (!data.results || data.results.length === 0) {
-            uvStatus.textContent = "❌ Location not found. Try again.";
+        if (
+            !data.results ||
+            data.results.length === 0
+        ) {
+
+            uvStatus.textContent =
+                "❌ Location not found. Try again.";
+
             return;
         }
 
@@ -93,156 +156,442 @@ async function manualLocation() {
         uvStatus.textContent =
             `✅ Location set to ${data.results[0].name}! Checking UV...`;
 
-        await checkAndAlertUV("Manual Location");
+        await checkAndAlertUV(
+            "Manual Location"
+        );
 
     } catch (error) {
-        console.error("Manual location error:", error);
-        uvStatus.textContent = "❌ Couldn't find that location.";
+
+        console.error(
+            "Manual location error:",
+            error
+        );
+
+        uvStatus.textContent =
+            "❌ Couldn't find that location.";
     }
 }
-// 1. Fetch Location Coordinates (Initial Button Click)
-locBtn.addEventListener('click', () => {
-    updateLocationAndCheckUV("Initial Check");
+
+
+
+
+locBtn.addEventListener("click", () => {
+
+    updateLocationAndCheckUV(
+        "Initial Check"
+    );
+
 });
 
-// 2. Fetch Live UV Data from OpenUV API
+
+
+
 async function fetchUVIndex(lat, lng) {
+
     try {
-        const response = await fetch(`https://api.openuv.io/api/v1/uv?lat=${lat}&lng=${lng}`, {
-            headers: { 'x-access-token': 'openuv-dpcirmsirbzyn-io' }
-        });
+
+        const response = await fetch(
+            `https://api.openuv.io/api/v1/uv?lat=${lat}&lng=${lng}`,
+            {
+                headers: {
+                    "x-access-token":
+                        "x-access-token': 'openuv-dpcirmsirbzyn-io"
+                }
+            }
+        );
+
+        if (!response.ok) {
+
+            console.error(
+                "OpenUV request failed:",
+                response.status
+            );
+
+            return null;
+        }
+
         const data = await response.json();
-        return Math.round(data.result.uv);
+
+        return Math.round(
+            data.result.uv
+        );
+
     } catch (error) {
-        console.error("Error fetching UV data:", error);
+
+        console.error(
+            "Error fetching UV data:",
+            error
+        );
+
         return null;
     }
 }
 
-// 3. UI Update & Threshold Notification Check
+
+// ================================
+// UV CHECK
+// ================================
+
 async function checkAndAlertUV(triggerType) {
-    if (!userLat || !userLng) return;
 
-    const uv = await fetchUVIndex(userLat, userLng);
-    if (uv === null) return;
-
-    // Update Dashboard UI
-    uvDisplay.textContent = `UV Index: ${uv}`;
-    if (uv <= 2) {
-        uvDisplay.style.backgroundColor = "#4caf50"; // Low (Green)
-        uvStatus.textContent = "Low UV level. Sun protection not strictly required.";
-    } else if (uv <= 5) {
-        uvDisplay.style.backgroundColor = "#fbc02d"; // Moderate (Yellow)
-        uvStatus.textContent = "Moderate UV level. Sun protection recommended!";
-    } else {
-        uvDisplay.style.backgroundColor = "#d32f2f"; // High/Extreme (Red)
-        uvStatus.textContent = "High UV level! Reapply sunscreen and wear a hat.";
+    if (
+        userLat === null ||
+        userLng === null
+    ) {
+        return;
     }
 
-    // Send notification ONLY if UV is 3 or higher
-    if (uv >= 3 && Notification.permission === "granted") {
+    const uv = await fetchUVIndex(
+        userLat,
+        userLng
+    );
+
+    if (uv === null) {
+        return;
+    }
+
+    // Update dashboard
+    uvDisplay.textContent =
+        `UV Index: ${uv}`;
+
+    if (uv <= 2) {
+
+        uvDisplay.style.backgroundColor =
+            "#4caf50";
+
+        uvStatus.textContent =
+            "Low UV level. Sun protection not strictly required.";
+
+    } else if (uv <= 5) {
+
+        uvDisplay.style.backgroundColor =
+            "#fbc02d";
+
+        uvStatus.textContent =
+            "Moderate UV level. Sun protection recommended!";
+
+    } else {
+
+        uvDisplay.style.backgroundColor =
+            "#d32f2f";
+
+        uvStatus.textContent =
+            "High UV level! Reapply sunscreen and wear a hat.";
+    }
+
+    // Send notification only when UV >= 3
+    if (
+        uv >= 3 &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+    ) {
+
         sendNotification(uv);
     }
 }
 
-// Helper function to send notifications reliably via Service Worker
+
+// ================================
+// NOTIFICATION
+// ================================
+
 function sendNotification(uv) {
-    const title = "☀️ Sunscreen Reminder";
+
+    const title =
+        "☀️ Sunscreen Reminder";
+
     const options = {
-        body: typeof uv === 'number' 
-            ? `Current UV Index is ${uv}. It has been 2 hours—reapply your sunscreen if you're outdoors!` 
-            : `Automated UV alerts are active! We'll remind you every 2 hours when UV is 3 or higher.`,
-        icon: "sun-icon-192.png",
-        badge: "sun-icon-192.png",
-        vibrate: [200, 100, 200]
+
+        body:
+            typeof uv === "number"
+                ? `Current UV Index is ${uv}. It has been 2 hours—reapply your sunscreen if you're outdoors!`
+                : "Automated UV alerts are active!! We'll remind you every 2 hours when the UV is 3 or higher.",
+
+        icon:
+            "sun-icon-192.png",
+
+        badge:
+            "sun-icon-192.png",
+
+        vibrate:
+            [200, 100, 200]
     };
 
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification(title, options);
-        });
-    } else {
-        new Notification(title, options);
+
+    if (
+        "serviceWorker" in navigator
+    ) {
+
+        navigator.serviceWorker.ready
+            .then((registration) => {
+
+                registration.showNotification(
+                    title,
+                    options
+                );
+
+            })
+            .catch((error) => {
+
+                console.error(
+                    "Service worker notification failed:",
+                    error
+                );
+
+            });
+
+    } else if (
+        "Notification" in window
+    ) {
+
+        new Notification(
+            title,
+            options
+        );
     }
 }
 
-// 4. Enable Notifications & Start Auto-Refreshing Loop
-notifyBtn.addEventListener('click', async () => {
-    if (!userLat || !userLng) {
-        alert("Please click 'Connect Location' first so we know where to check UV levels!");
-        return;
-    }
 
-    if ("Notification" in window) {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                sendNotification("Enabled");
-                await subscribeToPushNotifications();
-               startTwoHourTimer();
-            } else {
-                alert("Notifications were blocked in your browser settings.");
+// ================================
+// ENABLE NOTIFICATIONS
+// ================================
+
+notifyBtn.addEventListener(
+    "click",
+    async () => {
+
+        if (
+            userLat === null ||
+            userLng === null
+        ) {
+
+            alert(
+                "Please click 'Connect Location' first so we know where to check UV levels!"
+            );
+
+            return;
+        }
+
+
+        if (
+            !("Notification" in window)
+        ) {
+
+            alert(
+                "Notifications are not supported by this browser."
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const permission =
+                await Notification.requestPermission();
+
+
+            if (
+                permission !== "granted"
+            ) {
+
+                alert(
+                    "Notifications were blocked in your browser settings."
+                );
+
+                return;
             }
-        });
+
+
+            // Opening notification
+            sendNotification(
+                "Enabled"
+            );
+
+
+            // Subscribe to push
+            try {
+
+                await subscribeToPushNotifications();
+
+                console.log(
+                    "✅ Push notification setup complete."
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Push subscription error:",
+                    error
+                );
+            }
+
+
+            // Start existing 2-hour timer
+            startTwoHourTimer();
+
+        } catch (error) {
+
+            console.error(
+                "Notification setup error:",
+                error
+            );
+
+            alert(
+                "Something went wrong while enabling notifications."
+            );
+        }
+
     }
-});
+);
+
+
+// ================================
+// TWO-HOUR TIMER
+// ================================
 
 function startTwoHourTimer() {
-    if (alertIntervalTimer) clearInterval(alertIntervalTimer);
 
-    // Every 2 hours, fetch fresh GPS coordinates FIRST, then check UV
-    alertIntervalTimer = setInterval(() => {
-        updateLocationAndCheckUV("2-Hour Automated Check");
-    }, TWO_HOURS_MS);
+    if (alertIntervalTimer) {
 
-    // Update UI Status
-    notifyBtn.style.display = "none";
-    automationStatus.style.display = "block";
-    automationStatus.textContent = "Status: Active! Auto-updating location & checking UV every 2 hours (Alerts send if UV ≥ 3).";
+        clearInterval(
+            alertIntervalTimer
+        );
+    }
+
+
+    alertIntervalTimer =
+        setInterval(
+            () => {
+
+                updateLocationAndCheckUV(
+                    "2-Hour Automated Check"
+                );
+
+            },
+            TWO_HOURS_MS
+        );
+
+
+    notifyBtn.style.display =
+        "none";
+
+    automationStatus.style.display =
+        "block";
+
+    automationStatus.textContent =
+        "Status: Active! Auto-updating location & checking UV every 2 hours (Alerts send if UV ≥ 3).";
 }
 
-// 5. Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then((reg) => console.log('Service Worker registered successfully!', reg))
-            .catch((err) => console.error('Service Worker registration failed:', err));
-    });
-    const VAPID_PUBLIC_KEY = "BP2LQr7NIc-vGKyUEZVZ61WL6zN6ld_hX_YEPv0vL-qHPULBI3ie-XJ6gJpH7PA5fhBOhGpq7yZ7Uu15VyGcI7E";
 
-function urlBase64ToUint8Array(base64String) {
-    const padding = "=".repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
+// ================================
+// SERVICE WORKER
+// ================================
 
-    const rawData = window.atob(base64);
+if (
+    "serviceWorker" in navigator
+) {
 
-    return Uint8Array.from(
-        [...rawData].map(char => char.charCodeAt(0))
+    window.addEventListener(
+        "load",
+        () => {
+
+            navigator.serviceWorker
+                .register("./sw.js")
+
+                .then((reg) => {
+
+                    console.log(
+                        "Service Worker registered successfully!",
+                        reg
+                    );
+
+                })
+
+                .catch((err) => {
+
+                    console.error(
+                        "Service Worker registration failed:",
+                        err
+                    );
+                });
+
+        }
     );
 }
 
+
+// ================================
+// VAPID KEY CONVERSION
+// ================================
+
+function urlBase64ToUint8Array(
+    base64String
+) {
+
+    const padding =
+        "=".repeat(
+            (4 - base64String.length % 4) % 4
+        );
+
+    const base64 =
+        (
+            base64String + padding
+        )
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+
+
+    const rawData =
+        window.atob(base64);
+
+
+    return Uint8Array.from(
+        [...rawData].map(
+            (char) =>
+                char.charCodeAt(0)
+        )
+    );
+}
+
+
+// ================================
+// PUSH SUBSCRIPTION
+// ================================
+
 async function subscribeToPushNotifications() {
 
-    if (!("serviceWorker" in navigator)) {
-        console.error("Service workers are not supported.");
-        return;
+    if (
+        !("serviceWorker" in navigator)
+    ) {
+
+        throw new Error(
+            "Service workers are not supported."
+        );
     }
 
-    if (!("PushManager" in window)) {
-        console.error("Push notifications are not supported.");
-        return;
+
+    if (
+        !("PushManager" in window)
+    ) {
+
+        throw new Error(
+            "Push notifications are not supported."
+        );
     }
+
 
     try {
 
         const registration =
             await navigator.serviceWorker.ready;
 
+
         let subscription =
             await registration.pushManager.getSubscription();
 
-        // Create a subscription if one doesn't already exist
+
+        // Create subscription
         if (!subscription) {
 
             subscription =
@@ -257,39 +606,62 @@ async function subscribeToPushNotifications() {
                 });
         }
 
+
         console.log(
             "Push subscription:",
             subscription
         );
 
-        // Save subscription to Supabase
-        const { error } =
-            await supabaseClient
-                .from("push_subscriptions")
-                .upsert({
-                    endpoint: subscription.endpoint,
-                    subscription: subscription.toJSON(),
-                    latitude: userLat,
-                    longitude: userLng,
-                    reminders_enabled: true,
 
-                    // First check is 2 hours from now
+        // Save subscription to Supabase
+        const {
+            error
+        } = await supabaseClient
+            .from("push_subscriptions")
+            .upsert(
+
+                {
+                    endpoint:
+                        subscription.endpoint,
+
+                    subscription:
+                        subscription.toJSON(),
+
+                    latitude:
+                        userLat,
+
+                    longitude:
+                        userLng,
+
+                    reminders_enabled:
+                        true,
+
+                    // First server check is 2 hours
+                    // after the opening notification.
                     next_check_at:
                         new Date(
-                            Date.now() + TWO_HOURS_MS
+                            Date.now() +
+                            TWO_HOURS_MS
                         ).toISOString()
-                }, {
-                    onConflict: "endpoint"
-                });
+                },
+
+                {
+                    onConflict:
+                        "endpoint"
+                }
+            );
+
 
         if (error) {
+
             console.error(
                 "Could not save push subscription:",
                 error
             );
 
-            return;
+            throw error;
         }
+
 
         console.log(
             "✅ Push subscription saved!"
@@ -301,6 +673,8 @@ async function subscribeToPushNotifications() {
             "Push subscription failed:",
             error
         );
+
+        throw error;
     }
 }
-}
+```
