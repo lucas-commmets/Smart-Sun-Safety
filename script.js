@@ -1,133 +1,32 @@
-
-/*
-SUN SAFETY TRACKER
-*/
-
-/* -----------------------------------------
-AUSTRALIAN LOCATIONS
------------------------------------------ */
-
 const locations = {
-
-  sydney: {
-    name: "Sydney",
-    state: "NSW",
-    latitude: -33.8688,
-    longitude: 151.2093
-  },
-
-  melbourne: {
-    name: "Melbourne",
-    state: "VIC",
-    latitude: -37.8136,
-    longitude: 144.9631
-  },
-
-  brisbane: {
-    name: "Brisbane",
-    state: "QLD",
-    latitude: -27.4698,
-    longitude: 153.0251
-  },
-
-  perth: {
-    name: "Perth",
-    state: "WA",
-    latitude: -31.9505,
-    longitude: 115.8605
-  },
-
-  adelaide: {
-    name: "Adelaide",
-    state: "SA",
-    latitude: -34.9285,
-    longitude: 138.6007
-  },
-
-  canberra: {
-    name: "Canberra",
-    state: "ACT",
-    latitude: -35.2809,
-    longitude: 149.1300
-  },
-
-  hobart: {
-    name: "Hobart",
-    state: "TAS",
-    latitude: -42.8821,
-    longitude: 147.3272
-  },
-
-  darwin: {
-    name: "Darwin",
-    state: "NT",
-    latitude: -12.4634,
-    longitude: 130.8456
-  },
-
-  newcastle: {
-    name: "Newcastle",
-    state: "NSW",
-    latitude: -32.9283,
-    longitude: 151.7817
-  },
-
-  wollongong: {
-    name: "Wollongong",
-    state: "NSW",
-    latitude: -34.4278,
-    longitude: 150.8931
-  },
-
-  geelong: {
-    name: "Geelong",
-    state: "VIC",
-    latitude: -38.1499,
-    longitude: 144.3617
-  },
-
-  "gold-coast": {
-    name: "Gold Coast",
-    state: "QLD",
-    latitude: -28.0167,
-    longitude: 153.4000
-  },
-
-  "sunshine-coast": {
-    name: "Sunshine Coast",
-    state: "QLD",
-    latitude: -26.6500,
-    longitude: 153.0667
-  }
-
+  sydney: { name: "Sydney", state: "NSW", latitude: -33.8688, longitude: 151.2093 },
+  melbourne: { name: "Melbourne", state: "VIC", latitude: -37.8136, longitude: 144.9631 },
+  brisbane: { name: "Brisbane", state: "QLD", latitude: -27.4698, longitude: 153.0251 },
+  perth: { name: "Perth", state: "WA", latitude: -31.9505, longitude: 115.8605 },
+  adelaide: { name: "Adelaide", state: "SA", latitude: -34.9285, longitude: 138.6007 },
+  canberra: { name: "Canberra", state: "ACT", latitude: -35.2809, longitude: 149.1300 },
+  hobart: { name: "Hobart", state: "TAS", latitude: -42.8821, longitude: 147.3272 },
+  darwin: { name: "Darwin", state: "NT", latitude: -12.4634, longitude: 130.8456 },
+  newcastle: { name: "Newcastle", state: "NSW", latitude: -32.9283, longitude: 151.7817 },
+  wollongong: { name: "Wollongong", state: "NSW", latitude: -34.4278, longitude: 150.8931 },
+  geelong: { name: "Geelong", state: "VIC", latitude: -38.1499, longitude: 144.3617 },
+  "gold-coast": { name: "Gold Coast", state: "QLD", latitude: -28.0167, longitude: 153.4000 },
+  "sunshine-coast": { name: "Sunshine Coast", state: "QLD", latitude: -26.6500, longitude: 153.0667 }
 };
-
-
-/* -----------------------------------------
-STATE
------------------------------------------ */
 
 let latitude = null;
 let longitude = null;
 let currentUV = null;
-
 let remindersEnabled = false;
-
 let reminderTimer = null;
 let autoUpdateTimer = null;
 
-
-/* -----------------------------------------
-ELEMENT HELPER
------------------------------------------ */
-
-const $ = (id) =>
-  document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 
-/* -----------------------------------------
-UV API
------------------------------------------ */
+/* -----------------------------
+   UV API
+----------------------------- */
 
 async function getUV(lat, lon) {
 
@@ -139,270 +38,152 @@ async function getUV(lat, lon) {
     `&forecast_days=1` +
     `&timezone=auto`;
 
-
-  const response =
-    await fetch(url);
-
+  const response = await fetch(url);
 
   if (!response.ok) {
-
-    throw new Error(
-      "UV service unavailable"
-    );
-
+    throw new Error("UV service unavailable");
   }
 
+  const data = await response.json();
 
-  const data =
-    await response.json();
-
-
-  if (
-    !data.hourly ||
-    !data.hourly.uv_index
-  ) {
-
-    throw new Error(
-      "UV data unavailable"
-    );
-
+  if (!data.hourly?.uv_index) {
+    throw new Error("UV data unavailable");
   }
 
-
-  const now =
-    Date.now();
-
+  const now = Date.now();
 
   let closestIndex = 0;
+  let smallestDifference = Infinity;
 
-  let smallestDifference =
-    Infinity;
+  data.hourly.time.forEach((time, index) => {
 
+    const difference =
+      Math.abs(
+        new Date(time).getTime() - now
+      );
 
-  data.hourly.time.forEach(
-    (time, index) => {
-
-      const difference =
-        Math.abs(
-          new Date(time).getTime() -
-          now
-        );
-
-
-      if (
-        difference <
-        smallestDifference
-      ) {
-
-        smallestDifference =
-          difference;
-
-        closestIndex =
-          index;
-
-      }
-
+    if (difference < smallestDifference) {
+      smallestDifference = difference;
+      closestIndex = index;
     }
-  );
 
+  });
 
-  return data.hourly.uv_index[
-    closestIndex
-  ];
-
+  return data.hourly.uv_index[closestIndex];
 }
 
 
-/* -----------------------------------------
-DISPLAY UV
------------------------------------------ */
+/* -----------------------------
+   DISPLAY UV
+----------------------------- */
 
 function displayUV(uv) {
 
-  currentUV =
-    Number(uv);
-
-
-  if (
-    !Number.isFinite(currentUV)
-  ) {
-
-    $("uvNumber").textContent =
-      "--";
-
-    return;
-
-  }
-
+  currentUV = Number(uv);
 
   $("uvNumber").textContent =
     currentUV.toFixed(1);
 
-
   const percentage =
     Math.min(
-      Math.max(
-        currentUV / 12 * 100,
-        0
-      ),
+      Math.max(currentUV / 12 * 100, 0),
       100
     );
-
 
   $("uvGauge").style.width =
     `${percentage}%`;
 
-
   let level;
   let advice;
 
-
   if (currentUV < 3) {
 
-    level =
-      "Low";
+    level = "Low";
 
     advice =
       "Enjoy the outdoors and keep your usual sun-safety habits.";
 
-  }
+  } else if (currentUV < 6) {
 
-  else if (currentUV < 6) {
-
-    level =
-      "Moderate";
+    level = "Moderate";
 
     advice =
       "Protection is recommended. Slip, slop, slap, seek and slide.";
 
-  }
+  } else if (currentUV < 8) {
 
-  else if (currentUV < 8) {
-
-    level =
-      "High";
+    level = "High";
 
     advice =
       "Sun protection is important. Reduce direct sun exposure where possible.";
 
-  }
+  } else if (currentUV < 11) {
 
-  else if (currentUV < 11) {
-
-    level =
-      "Very High";
+    level = "Very High";
 
     advice =
       "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
 
-  }
+  } else {
 
-  else {
-
-    level =
-      "Extreme";
+    level = "Extreme";
 
     advice =
       "Minimise direct sun exposure and take extra care.";
 
   }
 
-
-  $("uvLevel").textContent =
-    level;
-
-  $("uvAdvice").textContent =
-    advice;
-
+  $("uvLevel").textContent = level;
+  $("uvAdvice").textContent = advice;
 
   if (currentUV >= 3) {
 
     $("protectionAlert")
       .classList.remove("inactive");
 
-  }
-
-  else {
+  } else {
 
     $("protectionAlert")
       .classList.add("inactive");
 
   }
 
-
   $("updated").textContent =
-    `Updated ${new Date().toLocaleTimeString(
-      [],
-      {
-        hour: "2-digit",
-        minute: "2-digit"
-      }
-    )}`;
-
+    `Updated ${new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    })}`;
 }
 
 
-/* -----------------------------------------
-MANUAL LOCATION FALLBACK
------------------------------------------ */
-
-/*
-IMPORTANT:
-
-This does NOT request browser
-location permission.
-
-The user can select an Australian
-location manually and the website
-will use that location for UV data.
-
-This is the fallback when GPS/location
-access doesn't work or is blocked.
-*/
+/* -----------------------------
+   LOAD A MANUAL LOCATION
+----------------------------- */
 
 async function loadManualLocation() {
 
   const selected =
     $("locationSelect").value;
 
-
   if (!selected) {
 
-    alert(
-      "Please choose a location first."
-    );
+    alert("Please choose a location first.");
 
     return;
-
   }
-
 
   const location =
     locations[selected];
 
-
-  if (!location) {
-
-    return;
-
-  }
-
+  if (!location) return;
 
   $("locationName").textContent =
     `${location.name}, ${location.state}`;
 
-
   $("locationMessage").textContent =
     "Getting the latest UV level...";
 
-
-  $("manualButton").disabled =
-    true;
-
-
-  $("manualButton").textContent =
-    "☀️ Checking UV...";
-
+  $("manualButton").disabled = true;
 
   try {
 
@@ -412,14 +193,11 @@ async function loadManualLocation() {
         location.longitude
       );
 
-
     /*
-    IMPORTANT:
+      IMPORTANT:
+      Manual location has now been selected.
 
-    Manual location becomes the
-    active location.
-
-    Browser GPS is NOT requested.
+      We do NOT request geolocation.
     */
 
     latitude =
@@ -428,52 +206,32 @@ async function loadManualLocation() {
     longitude =
       location.longitude;
 
-
     displayUV(uv);
-
 
     $("locationMessage").textContent =
       "Live UV data is being monitored for this location.";
 
-
     $("locationSuccess")
       .classList.add("show");
 
-
     startAutoUpdate();
 
-
-  }
-
-  catch (error) {
+  } catch (error) {
 
     console.error(error);
-
 
     $("locationMessage").textContent =
       "The UV service could not be reached. Your school network may be blocking it.";
 
-
-    alert(
-      "The UV service could not be reached."
-    );
-
   }
 
-
-  $("manualButton").disabled =
-    false;
-
-
-  $("manualButton").textContent =
-    "☀️ Check Selected Location";
-
+  $("manualButton").disabled = false;
 }
 
 
-/* -----------------------------------------
-DEVICE LOCATION
------------------------------------------ */
+/* -----------------------------
+   DEVICE LOCATION
+----------------------------- */
 
 function useMyLocation() {
 
@@ -484,21 +242,16 @@ function useMyLocation() {
     );
 
     return;
-
   }
 
-
-  $("locationButton").disabled =
-    true;
-
+  $("locationButton").disabled = true;
 
   $("locationButton").textContent =
     "📡 Finding location...";
 
-
   navigator.geolocation.getCurrentPosition(
 
-    async (position) => {
+    async position => {
 
       latitude =
         position.coords.latitude;
@@ -506,14 +259,8 @@ function useMyLocation() {
       longitude =
         position.coords.longitude;
 
-
       $("locationName").textContent =
         "Your current location";
-
-
-      $("locationMessage").textContent =
-        "Getting the latest UV level...";
-
 
       try {
 
@@ -523,87 +270,57 @@ function useMyLocation() {
             longitude
           );
 
-
         displayUV(uv);
-
 
         $("locationMessage").textContent =
           "Live UV data is being monitored for your current location.";
 
-
-        $("locationSuccess")
-          .classList.add("show");
-
-
         startAutoUpdate();
 
-      }
-
-      catch (error) {
-
-        console.error(error);
-
+      } catch (error) {
 
         $("locationMessage").textContent =
           "Your location was found, but the UV service couldn't be reached.";
 
       }
 
-
-      $("locationButton").disabled =
-        false;
-
+      $("locationButton").disabled = false;
 
       $("locationButton").textContent =
         "🔄 Refresh My Location & UV";
-
     },
-
 
     () => {
 
-      $("locationButton").disabled =
-        false;
-
+      $("locationButton").disabled = false;
 
       $("locationButton").textContent =
         "📍 Use My Location";
 
-
       alert(
         "Location access was unavailable. Choose a location manually instead."
       );
-
     }
 
   );
-
 }
 
 
-/* -----------------------------------------
-AUTOMATIC UV UPDATES
------------------------------------------ */
+/* -----------------------------
+   AUTOMATIC UV UPDATES
+----------------------------- */
 
 function startAutoUpdate() {
 
-  clearInterval(
-    autoUpdateTimer
-  );
-
+  clearInterval(autoUpdateTimer);
 
   autoUpdateTimer =
     setInterval(
       refreshUV,
       15 * 60 * 1000
     );
-
 }
 
-
-/* -----------------------------------------
-REFRESH UV
------------------------------------------ */
 
 async function refreshUV() {
 
@@ -611,11 +328,8 @@ async function refreshUV() {
     latitude === null ||
     longitude === null
   ) {
-
     return;
-
   }
-
 
   try {
 
@@ -625,173 +339,54 @@ async function refreshUV() {
         longitude
       );
 
-
     displayUV(uv);
 
-  }
-
-  catch (error) {
+  } catch (error) {
 
     console.log(
-      "Automatic UV update unavailable."
+      "Automatic update unavailable."
     );
 
   }
-
 }
 
 
-/* -----------------------------------------
-NOTIFICATION PERMISSION
------------------------------------------ */
+/* -----------------------------
+   NOTIFICATIONS
+----------------------------- */
 
 async function requestNotifications() {
 
-  if (
-    !("Notification" in window)
-  ) {
+  if (!("Notification" in window)) {
 
     alert(
       "Notifications aren't supported by this browser."
     );
 
     return false;
-
   }
-
-
-  if (
-    Notification.permission ===
-    "granted"
-  ) {
-
-    return true;
-
-  }
-
-
-  if (
-    Notification.permission ===
-    "denied"
-  ) {
-
-    alert(
-      "Notifications are blocked in your browser."
-    );
-
-    return false;
-
-  }
-
 
   const permission =
     await Notification.requestPermission();
 
-
-  return (
-    permission ===
-    "granted"
-  );
-
+  return permission === "granted";
 }
 
-
-/* -----------------------------------------
-REMINDER ENABLED CONFIRMATION
------------------------------------------ */
-
-function sendReminderEnabledNotification() {
-
-  if (
-    !("Notification" in window) ||
-    Notification.permission !==
-    "granted"
-  ) {
-
-    return;
-
-  }
-
-
-  try {
-
-    new Notification(
-      "Sun Safety Reminders Enabled 🔔",
-      {
-
-        body:
-          "You'll be notified every 2 hours when the UV index is 3 or higher.",
-
-        icon:
-          "favicon.png",
-
-        tag:
-          "sun-safety-reminders-enabled"
-
-      }
-    );
-
-  }
-
-  catch (error) {
-
-    console.warn(
-      "Confirmation notification failed:",
-      error
-    );
-
-  }
-
-}
-
-
-/* -----------------------------------------
-2-HOUR SUNSCREEN NOTIFICATION
------------------------------------------ */
 
 function sendNotification(uv) {
 
   if (
-    !("Notification" in window) ||
-    Notification.permission !==
-    "granted"
+    "Notification" in window &&
+    Notification.permission === "granted"
   ) {
-
-    return;
-
-  }
-
-
-  const message =
-    `The UV index is ${Number(uv).toFixed(1)}. ` +
-    `Reapply sunscreen as it has been 2 hours.`;
-
-
-  try {
 
     new Notification(
       "Sun Safety Reminder ☀️",
       {
-
         body:
-          message,
-
-        icon:
-          "favicon.png",
-
-        tag:
-          "sun-safety-2-hour-reminder"
-
+          `UV is ${Number(uv).toFixed(1)}. Sun protection is recommended.`,
+        icon: "favicon.png"
       }
-    );
-
-  }
-
-  catch (error) {
-
-    console.warn(
-      "Notification failed:",
-      error
     );
 
   }
@@ -799,25 +394,20 @@ function sendNotification(uv) {
 }
 
 
-/* -----------------------------------------
-2-HOUR REMINDER
------------------------------------------ */
+/* -----------------------------
+   2-HOUR REMINDERS
+----------------------------- */
 
 async function toggleReminders() {
-
-  /*
-  TURN ON
-  */
 
   if (!remindersEnabled) {
 
     /*
-    IMPORTANT:
-
-    A manually selected location is
-    perfectly valid.
-
-    GPS permission is NOT required.
+      IMPORTANT:
+      Reminders require a location,
+      but this can be a manually selected
+      location. Browser location permission
+      is NOT required.
     */
 
     if (
@@ -830,13 +420,10 @@ async function toggleReminders() {
       );
 
       return;
-
     }
-
 
     const allowed =
       await requestNotifications();
-
 
     if (!allowed) {
 
@@ -845,17 +432,12 @@ async function toggleReminders() {
       );
 
       return;
-
     }
 
-
-    remindersEnabled =
-      true;
-
+    remindersEnabled = true;
 
     $("reminderToggle")
       .classList.add("on");
-
 
     $("reminderToggle")
       .setAttribute(
@@ -863,53 +445,17 @@ async function toggleReminders() {
         "true"
       );
 
-
-    $("reminderStatus")
-      .textContent =
+    $("reminderStatus").textContent =
       "On — every 2 hours";
 
-
     /*
-    SEND CONFIRMATION.
-
-    This tells the user that the
-    reminder system is active.
+      Check immediately.
     */
 
-    sendReminderEnabledNotification();
-
-
-    /*
-    Small visual confirmation too.
-    */
-
-    if (typeof showToast === "function") {
-
-      showToast(
-        "2-hour sun-safety reminders are on."
-      );
-
-    }
-
+    await checkReminder();
 
     /*
-    Make sure there isn't an
-    old reminder timer running.
-    */
-
-    clearInterval(
-      reminderTimer
-    );
-
-
-    /*
-    IMPORTANT:
-
-    We do NOT send a sunscreen
-    reminder immediately.
-
-    The first real reminder happens
-    after 2 hours.
+      Then every 2 hours.
     */
 
     reminderTimer =
@@ -918,27 +464,16 @@ async function toggleReminders() {
         2 * 60 * 60 * 1000
       );
 
-  }
+  } else {
 
-
-  /*
-  TURN OFF
-  */
-
-  else {
-
-    remindersEnabled =
-      false;
-
+    remindersEnabled = false;
 
     clearInterval(
       reminderTimer
     );
 
-
     $("reminderToggle")
       .classList.remove("on");
-
 
     $("reminderToggle")
       .setAttribute(
@@ -946,41 +481,20 @@ async function toggleReminders() {
         "false"
       );
 
-
-    $("reminderStatus")
-      .textContent =
+    $("reminderStatus").textContent =
       "Currently off";
-
-
-    if (typeof showToast === "function") {
-
-      showToast(
-        "2-hour reminders turned off."
-      );
-
-    }
-
   }
-
 }
 
-
-/* -----------------------------------------
-CHECK REMINDER
------------------------------------------ */
 
 async function checkReminder() {
 
   if (
-    !remindersEnabled ||
     latitude === null ||
     longitude === null
   ) {
-
     return;
-
   }
-
 
   try {
 
@@ -990,14 +504,7 @@ async function checkReminder() {
         longitude
       );
 
-
     displayUV(uv);
-
-
-    /*
-    Only send the reminder when
-    UV is 3 or higher.
-    */
 
     if (uv >= 3) {
 
@@ -1005,22 +512,19 @@ async function checkReminder() {
 
     }
 
-  }
-
-  catch (error) {
+  } catch (error) {
 
     console.log(
       "Reminder check failed."
     );
 
   }
-
 }
 
 
-/* -----------------------------------------
-BUTTONS
------------------------------------------ */
+/* -----------------------------
+   BUTTONS
+----------------------------- */
 
 $("locationButton")
   .addEventListener(
@@ -1043,14 +547,9 @@ $("reminderToggle")
   );
 
 
-/* -----------------------------------------
-YEAR
------------------------------------------ */
+/* -----------------------------
+   YEAR
+----------------------------- */
 
-if ($("year")) {
-
-  $("year").textContent =
-    new Date().getFullYear();
-
-}
-```
+$("year").textContent =
+  new Date().getFullYear();
