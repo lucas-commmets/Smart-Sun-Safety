@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <link rel="icon" type="image/png" href="favicon.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
 
   <title>☀️ Sun Safety Tracker</title>
 
@@ -12,6 +10,11 @@
     name="description"
     content="Live UV updates and automated protection alerts by Sunsafe Ambassadors."
   >
+
+  <meta name="theme-color" content="#ffb703">
+
+  <link rel="icon" type="image/png" href="sun-favicon.ico">
+  <link rel="manifest" href="manifest.json">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,23 +27,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js")
-        .then(() => {
-          console.log("Sun Safety Tracker service worker registered.");
-        })
-        .catch((error) => {
-          console.error(
-            "Service worker registration failed:",
-            error
-          );
-        });
-    });
-  }
-</script>
-
 <body>
 
   <div class="background-glow glow-one"></div>
@@ -50,12 +36,14 @@
   <header class="navbar">
 
     <a href="#" class="brand">
+
       <span class="brand-icon">☀️</span>
 
       <span>
         <strong>Sun Safety Tracker</strong>
         <small>Sunsafe Ambassadors</small>
       </span>
+
     </a>
 
     <div class="live-status">
@@ -95,7 +83,6 @@
       </div>
 
 
-      <!-- SUN GRAPHIC -->
       <div class="sun-animation">
 
         <div class="sun-ring"></div>
@@ -116,14 +103,21 @@
     </section>
 
 
-    <!-- UV TRACKER -->
+    <!-- TRACKER -->
     <section class="tracker" id="tracker">
 
       <div class="section-heading">
 
         <div>
-          <span class="eyebrow">LIVE STATUS</span>
-          <h2>Your UV check</h2>
+
+          <span class="eyebrow">
+            LIVE STATUS
+          </span>
+
+          <h2>
+            Your UV check
+          </h2>
+
         </div>
 
         <small id="updated">
@@ -152,15 +146,149 @@
           </h3>
 
           <p id="locationMessage">
-            Connect your location to check the local UV level.
+            Use your location or choose a city manually
+            to check the local UV level.
           </p>
+
+
+          <!-- USE DEVICE LOCATION -->
 
           <button
             class="primary-button"
             id="locationButton"
           >
-            📍 Connect Location & Check UV
+            📍 Use My Location
           </button>
+
+
+          <div class="or-divider">
+            <span>OR</span>
+          </div>
+
+
+          <!-- MANUAL LOCATION -->
+
+          <label
+            class="manual-label"
+            for="locationSelect"
+          >
+            🏙️ Choose a location
+          </label>
+
+          <select
+            id="locationSelect"
+            class="location-select"
+          >
+
+            <option value="">
+              Select a location...
+            </option>
+
+            <optgroup label="New South Wales">
+
+              <option value="sydney">
+                Sydney
+              </option>
+
+              <option value="newcastle">
+                Newcastle
+              </option>
+
+              <option value="wollongong">
+                Wollongong
+              </option>
+
+              <option value="central-coast">
+                Central Coast
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="Victoria">
+
+              <option value="melbourne">
+                Melbourne
+              </option>
+
+              <option value="geelong">
+                Geelong
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="Queensland">
+
+              <option value="brisbane">
+                Brisbane
+              </option>
+
+              <option value="gold-coast">
+                Gold Coast
+              </option>
+
+              <option value="sunshine-coast">
+                Sunshine Coast
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="Western Australia">
+
+              <option value="perth">
+                Perth
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="South Australia">
+
+              <option value="adelaide">
+                Adelaide
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="Australian Capital Territory">
+
+              <option value="canberra">
+                Canberra
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="Tasmania">
+
+              <option value="hobart">
+                Hobart
+              </option>
+
+            </optgroup>
+
+
+            <optgroup label="Northern Territory">
+
+              <option value="darwin">
+                Darwin
+              </option>
+
+            </optgroup>
+
+          </select>
+
+
+          <button
+            class="secondary-button"
+            id="manualButton"
+          >
+            ☀️ Check Selected Location
+          </button>
+
 
           <small
             class="location-success"
@@ -202,7 +330,6 @@
           </div>
 
 
-          <!-- UV BAR -->
           <div class="uv-gauge">
 
             <div
@@ -225,12 +352,11 @@
             class="uv-advice"
             id="uvAdvice"
           >
-            Connect your location to receive a live UV
-            reading and protection advice.
+            Connect your location or choose a city
+            to receive a live UV reading.
           </p>
 
 
-          <!-- PROTECTION ALERT -->
           <div
             class="protection-alert inactive"
             id="protectionAlert"
@@ -239,6 +365,7 @@
             <span>🛡️</span>
 
             <div>
+
               <strong>
                 Protection reminder
               </strong>
@@ -246,6 +373,7 @@
               <small>
                 UV 3+ means sun protection is recommended.
               </small>
+
             </div>
 
           </div>
@@ -340,47 +468,77 @@
       <div class="rules-grid">
 
         <article class="rule-card">
+
           <span>👕</span>
-          <strong>Slip</strong>
+
+          <strong>
+            Slip
+          </strong>
+
           <p>
             on sun-protective clothing.
           </p>
+
         </article>
 
 
         <article class="rule-card">
+
           <span>🧴</span>
-          <strong>Slop</strong>
+
+          <strong>
+            Slop
+          </strong>
+
           <p>
             on broad-spectrum SPF 50+ sunscreen.
           </p>
+
         </article>
 
 
         <article class="rule-card">
+
           <span>🧢</span>
-          <strong>Slap</strong>
+
+          <strong>
+            Slap
+          </strong>
+
           <p>
             on a broad-brimmed hat.
           </p>
+
         </article>
 
 
         <article class="rule-card">
+
           <span>🌳</span>
-          <strong>Seek</strong>
+
+          <strong>
+            Seek
+          </strong>
+
           <p>
             shade under trees or awnings.
           </p>
+
         </article>
 
 
         <article class="rule-card">
+
           <span>🕶️</span>
-          <strong>Slide</strong>
+
+          <strong>
+            Slide
+          </strong>
+
           <p>
             on wrap-around sunglasses.
           </p>
+
         </article>
 
       </div>
@@ -416,6 +574,42 @@
 
 
   <script src="script.js"></script>
+
+
+  <!-- SERVICE WORKER -->
+
+  <script>
+
+    if ("serviceWorker" in navigator) {
+
+      window.addEventListener(
+        "load",
+        () => {
+
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then(() => {
+
+              console.log(
+                "Sun Safety Tracker service worker registered."
+              );
+
+            })
+            .catch((error) => {
+
+              console.error(
+                "Service worker registration failed:",
+                error
+              );
+
+            });
+
+        }
+      );
+
+    }
+
+  </script>
 
 </body>
 </html>
