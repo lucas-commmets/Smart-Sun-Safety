@@ -1,0 +1,26 @@
+{
+  "short_name": "Sun Tracker",
+  "name": "Sun Safety Tracker by Sunsafe Ambassadors",
+  "icons": [
+    {
+      "src": "sun-favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "sun-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "sun-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#fffde7",
+  "theme_color": "#fbc02d",
+  "display": "standalone",
+  "orientation": "portrait"
+}
