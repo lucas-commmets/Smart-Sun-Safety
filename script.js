@@ -195,10 +195,10 @@ async function fetchUVIndex(lat, lng) {
             {
                 headers: {
                     "x-access-token":
-                        "x-access-token': 'openuv-dpcirmsirbzyn-io"
+                        "x-access-token':"openuv-dpcirmsirbzyn-io"
                 }
             }
-        );
+        };
 
         if (!response.ok) {
 
