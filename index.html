@@ -33,7 +33,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
       .then(() => {
-        console.log("Sun Safety Tracker service worker registered.");
+        console.log("Service worker registered.");
       })
       .catch((error) => {
         console.error(
