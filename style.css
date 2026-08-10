@@ -1233,6 +1233,141 @@ footer strong {
 
   footer {
     flex-direction: column;
+  
   }
 
+/* -----------------------------------------
+PWA INSTALL CARD
+----------------------------------------- */
+
+.install-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  padding: 18px;
+
+  margin-top: 18px;
+
+  border-radius: 18px;
+
+  background: rgba(255, 255, 255, 0.92);
+
+  border: 1px solid rgba(11, 127, 171, 0.15);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.08);
+
+  backdrop-filter: blur(10px);
 }
+
+
+.install-card[hidden] {
+  display: none;
+}
+
+
+.install-card-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 14px;
+
+  background: #e7f7ff;
+
+  font-size: 25px;
+}
+
+
+.install-card-content {
+  flex: 1;
+}
+
+
+.install-card-content h3 {
+  margin: 0 0 4px;
+
+  font-size: 1rem;
+}
+
+
+.install-card-content p {
+  margin: 0;
+
+  font-size: 0.88rem;
+
+  line-height: 1.4;
+
+  opacity: 0.75;
+}
+
+
+.install-button {
+  border: none;
+
+  border-radius: 12px;
+
+  padding: 11px 16px;
+
+  background: #0b7fab;
+
+  color: white;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  white-space: nowrap;
+
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+
+.install-button:hover {
+  transform: translateY(-1px);
+}
+
+
+.install-button:active {
+  transform: translateY(0);
+}
+
+
+.install-button:disabled {
+  opacity: 0.6;
+
+  cursor: default;
+}
+
+
+/* -----------------------------------------
+MOBILE
+----------------------------------------- */
+
+@media (max-width: 600px) {
+
+  .install-card {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+
+  .install-card-content {
+    min-width: 0;
+  }
+
+
+  .install-button {
+    width: 100%;
+  }
+
+}}
