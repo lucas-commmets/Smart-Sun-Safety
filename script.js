@@ -1,3 +1,15 @@
+const SUPABASE_URL = "https://ndosqkrtkybeiafagjto.supabase.co";
+
+// IMPORTANT:
+// Put your Supabase PUBLISHABLE key here.
+// Do NOT use your secret/service_role key.
+const SUPABASE_PUBLISHABLE_KEY = "YOUR_PUBLISHABLE_KEY";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    sb_publishable_3EOT86U57-09W4m7BZq1Xw_tcL68Iiv
+);
+
 // Global variables
 let userLat = null;
 let userLng = null;
@@ -154,7 +166,7 @@ function sendNotification(uv) {
 }
 
 // 4. Enable Notifications & Start Auto-Refreshing Loop
-notifyBtn.addEventListener('click', () => {
+notifyBtn.addEventListener('click', async () => {
     if (!userLat || !userLng) {
         alert("Please click 'Connect Location' first so we know where to check UV levels!");
         return;
@@ -163,8 +175,9 @@ notifyBtn.addEventListener('click', () => {
     if ("Notification" in window) {
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
-                startTwoHourTimer();
                 sendNotification("Enabled");
+                await subscribeToPushNotifications();
+               startTwoHourTimer();
             } else {
                 alert("Notifications were blocked in your browser settings.");
             }
@@ -193,4 +206,100 @@ if ('serviceWorker' in navigator) {
             .then((reg) => console.log('Service Worker registered successfully!', reg))
             .catch((err) => console.error('Service Worker registration failed:', err));
     });
+    const VAPID_PUBLIC_KEY = "BP2LQr7NIc-vGKyUEZVZ61WL6zN6ld_hX_YEPv0vL-qHPULBI3ie-XJ6gJpH7PA5fhBOhGpq7yZ7Uu15VyGcI7E";
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(char => char.charCodeAt(0))
+    );
+}
+
+async function subscribeToPushNotifications() {
+
+    if (!("serviceWorker" in navigator)) {
+        console.error("Service workers are not supported.");
+        return;
+    }
+
+    if (!("PushManager" in window)) {
+        console.error("Push notifications are not supported.");
+        return;
+    }
+
+    try {
+
+        const registration =
+            await navigator.serviceWorker.ready;
+
+        let subscription =
+            await registration.pushManager.getSubscription();
+
+        // Create a subscription if one doesn't already exist
+        if (!subscription) {
+
+            subscription =
+                await registration.pushManager.subscribe({
+
+                    userVisibleOnly: true,
+
+                    applicationServerKey:
+                        urlBase64ToUint8Array(
+                            VAPID_PUBLIC_KEY
+                        )
+                });
+        }
+
+        console.log(
+            "Push subscription:",
+            subscription
+        );
+
+        // Save subscription to Supabase
+        const { error } =
+            await supabaseClient
+                .from("push_subscriptions")
+                .upsert({
+                    endpoint: subscription.endpoint,
+                    subscription: subscription.toJSON(),
+                    latitude: userLat,
+                    longitude: userLng,
+                    reminders_enabled: true,
+
+                    // First check is 2 hours from now
+                    next_check_at:
+                        new Date(
+                            Date.now() + TWO_HOURS_MS
+                        ).toISOString()
+                }, {
+                    onConflict: "endpoint"
+                });
+
+        if (error) {
+            console.error(
+                "Could not save push subscription:",
+                error
+            );
+
+            return;
+        }
+
+        console.log(
+            "✅ Push subscription saved!"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Push subscription failed:",
+            error
+        );
+    }
+}
 }
