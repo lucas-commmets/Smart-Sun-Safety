@@ -1,15 +1,17 @@
 const SUPABASE_URL = "https://ndosqkrtkybeiafagjto.supabase.co";
 
-// IMPORTANT:
-// Put your Supabase PUBLISHABLE key here.
-// Do NOT use your secret/service_role key.
-const SUPABASE_PUBLISHABLE_KEY = "YOUR_PUBLISHABLE_KEY";
+// Your Supabase PUBLISHABLE key
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3EOT86U57-09W4m7BZq1Xw_tcL68Iiv";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    sb_publishable_3EOT86U57-09W4m7BZq1Xw_tcL68Iiv
+    SUPABASE_PUBLISHABLE_KEY
 );
 
+// Global variables
+let userLat = null;
+let userLng = null;
+let alertIntervalTimer = null;
 // Global variables
 let userLat = null;
 let userLng = null;
