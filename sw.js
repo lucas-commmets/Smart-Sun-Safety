@@ -1,4 +1,4 @@
-const CACHE_NAME = "sun-safety-tracker-v1";
+const CACHE_NAME = "sun-safety-tracker-v2";
 
 const APP_ROOT = "/Smart-Sun-Safety/";
 
@@ -8,9 +8,9 @@ const APP_SHELL = [
   APP_ROOT + "style.css",
   APP_ROOT + "script.js",
   APP_ROOT + "manifest.json",
-  APP_ROOT + "favicon.png",
-  APP_ROOT + "icon-192.png",
-  APP_ROOT + "icon-512.png"
+  APP_ROOT + "sun-favicon.png",
+  APP_ROOT + "sun-icon-192.png",
+  APP_ROOT + "sun-icon-512.png"
 ];
 
 
@@ -259,10 +259,10 @@ self.addEventListener("push", (event) => {
       "Remember to check the UV and reapply sunscreen.",
 
     icon:
-      "/Smart-Sun-Safety/icon-192.png",
+      "/Smart-Sun-Safety/sun-icon-192.png",
 
     badge:
-      "/Smart-Sun-Safety/icon-192.png",
+      "/Smart-Sun-Safety/sun-icon-192.png",
 
     tag:
       data.tag ||
