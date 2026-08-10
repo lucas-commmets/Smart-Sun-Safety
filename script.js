@@ -1,5 +1,3 @@
-
-
 const SUPABASE_URL = "https://ndosqkrtkybeiafagjto.supabase.co";
 
 // Put your Supabase PUBLISHABLE key between the quotes.
