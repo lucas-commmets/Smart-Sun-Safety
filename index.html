@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+
+  <title>☀️ Sun Safety Tracker</title>
+
+  <meta
+    name="description"
+    content="Live UV updates and automated protection alerts by Sunsafe Ambassadors."
+  >
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js")
+        .then(() => {
+          console.log("Sun Safety Tracker service worker registered.");
+        })
+        .catch((error) => {
+          console.error(
+            "Service worker registration failed:",
+            error
+          );
+        });
+    });
+  }
+</script>
+
+<body>
+
+  <div class="background-glow glow-one"></div>
+  <div class="background-glow glow-two"></div>
+
+  <!-- NAVIGATION -->
+  <header class="navbar">
+
+    <a href="#" class="brand">
+      <span class="brand-icon">☀️</span>
+
+      <span>
+        <strong>Sun Safety Tracker</strong>
+        <small>Sunsafe Ambassadors</small>
+      </span>
+    </a>
+
+    <div class="live-status">
+      <span></span>
+      LIVE UV
+    </div>
+
+  </header>
+
+
+  <main>
+
+    <!-- HERO -->
+    <section class="hero">
+
+      <div class="hero-content">
+
+        <span class="eyebrow">
+          YOUR DAILY SUN-SAFETY COMPANION
+        </span>
+
+        <h1>
+          Stay sun-smart.<br>
+          <span>Stay protected.</span>
+        </h1>
+
+        <p>
+          Check your local UV level and get smart reminders
+          to protect yourself when the sun gets stronger.
+        </p>
+
+        <a href="#tracker" class="hero-button">
+          Check your UV status
+          <span>↓</span>
+        </a>
+
+      </div>
+
+
+      <!-- SUN GRAPHIC -->
+      <div class="sun-animation">
+
+        <div class="sun-ring"></div>
+
+        <div class="sun-core">
+          ☀
+        </div>
+
+        <div class="sun-ray ray-one"></div>
+        <div class="sun-ray ray-two"></div>
+        <div class="sun-ray ray-three"></div>
+        <div class="sun-ray ray-four"></div>
+        <div class="sun-ray ray-five"></div>
+        <div class="sun-ray ray-six"></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- UV TRACKER -->
+    <section class="tracker" id="tracker">
+
+      <div class="section-heading">
+
+        <div>
+          <span class="eyebrow">LIVE STATUS</span>
+          <h2>Your UV check</h2>
+        </div>
+
+        <small id="updated">
+          Waiting for location
+        </small>
+
+      </div>
+
+
+      <div class="tracker-grid">
+
+
+        <!-- LOCATION CARD -->
+        <article class="card location-card">
+
+          <div class="location-icon">
+            📍
+          </div>
+
+          <span class="label">
+            CURRENT LOCATION
+          </span>
+
+          <h3 id="locationName">
+            Location not connected
+          </h3>
+
+          <p id="locationMessage">
+            Connect your location to check the local UV level.
+          </p>
+
+          <button
+            class="primary-button"
+            id="locationButton"
+          >
+            📍 Connect Location & Check UV
+          </button>
+
+          <small
+            class="location-success"
+            id="locationSuccess"
+          >
+            Location updated!
+          </small>
+
+        </article>
+
+
+        <!-- UV CARD -->
+        <article class="card uv-card">
+
+          <div class="uv-header">
+
+            <div>
+
+              <span class="label">
+                CURRENT UV INDEX
+              </span>
+
+              <div
+                class="uv-number"
+                id="uvNumber"
+              >
+                --
+              </div>
+
+            </div>
+
+            <span
+              class="uv-level"
+              id="uvLevel"
+            >
+              Waiting
+            </span>
+
+          </div>
+
+
+          <!-- UV BAR -->
+          <div class="uv-gauge">
+
+            <div
+              class="uv-gauge-fill"
+              id="uvGauge"
+            ></div>
+
+          </div>
+
+          <div class="gauge-labels">
+            <span>0</span>
+            <span>3</span>
+            <span>6</span>
+            <span>8</span>
+            <span>11+</span>
+          </div>
+
+
+          <p
+            class="uv-advice"
+            id="uvAdvice"
+          >
+            Connect your location to receive a live UV
+            reading and protection advice.
+          </p>
+
+
+          <!-- PROTECTION ALERT -->
+          <div
+            class="protection-alert inactive"
+            id="protectionAlert"
+          >
+
+            <span>🛡️</span>
+
+            <div>
+              <strong>
+                Protection reminder
+              </strong>
+
+              <small>
+                UV 3+ means sun protection is recommended.
+              </small>
+            </div>
+
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+
+    <!-- REMINDERS -->
+    <section class="reminder-section">
+
+      <div class="reminder-information">
+
+        <span class="eyebrow">
+          SMART REMINDERS
+        </span>
+
+        <h2>
+          Never forget your sunscreen.
+        </h2>
+
+        <p>
+          Turn on 2-hour reminders to check live UV levels
+          and receive a sunscreen reapplication notification
+          whenever UV is 3 or higher.
+        </p>
+
+      </div>
+
+
+      <div class="reminder-control">
+
+        <div class="bell-icon">
+          🔔
+        </div>
+
+        <div class="reminder-text">
+
+          <strong>
+            2-Hour Protection Reminders
+          </strong>
+
+          <small id="reminderStatus">
+            Currently off
+          </small>
+
+        </div>
+
+        <button
+          class="toggle"
+          id="reminderToggle"
+          aria-label="Turn reminders on or off"
+          aria-pressed="false"
+        >
+
+          <span></span>
+
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- SUNSMART RULES -->
+    <section class="rules">
+
+      <div class="section-heading centered">
+
+        <div>
+
+          <span class="eyebrow">
+            SUNSMART
+          </span>
+
+          <h2>
+            The 5 SunSmart Rules
+          </h2>
+
+          <p>
+            Simple habits that help you stay protected outdoors.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="rules-grid">
+
+        <article class="rule-card">
+          <span>👕</span>
+          <strong>Slip</strong>
+          <p>
+            on sun-protective clothing.
+          </p>
+        </article>
+
+
+        <article class="rule-card">
+          <span>🧴</span>
+          <strong>Slop</strong>
+          <p>
+            on broad-spectrum SPF 50+ sunscreen.
+          </p>
+        </article>
+
+
+        <article class="rule-card">
+          <span>🧢</span>
+          <strong>Slap</strong>
+          <p>
+            on a broad-brimmed hat.
+          </p>
+        </article>
+
+
+        <article class="rule-card">
+          <span>🌳</span>
+          <strong>Seek</strong>
+          <p>
+            shade under trees or awnings.
+          </p>
+        </article>
+
+
+        <article class="rule-card">
+          <span>🕶️</span>
+          <strong>Slide</strong>
+          <p>
+            on wrap-around sunglasses.
+          </p>
+        </article>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- FOOTER -->
+  <footer>
+
+    <strong>
+      ☀️ Sun Safety Tracker
+    </strong>
+
+    <span>
+      Built for safer days in the sun.
+    </span>
+
+    <span>
+      © <span id="year"></span>
+      Sunsafe Ambassadors
+    </span>
+
+  </footer>
+
+
+  <div
+    class="toast"
+    id="toast"
+  ></div>
+
+
+  <script src="script.js"></script>
+
+</body>
+</html>
