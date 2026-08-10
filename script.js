@@ -677,4 +677,3 @@ async function subscribeToPushNotifications() {
         throw error;
     }
 }
-
