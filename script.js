@@ -30,16 +30,23 @@ function updateLocationAndCheckUV(triggerLabel = "Routine Check") {
                     await checkAndAlertUV(triggerLabel);
                     resolve();
                 },
-                (error) => {
-                    console.warn("Geolocation error or denied:", error);
-                    uvStatus.textContent = "Location access denied. Using last known location...";
-                    
-                    // Fallback: Check UV with last known coordinates if available
-                    if (userLat && userLng) {
-                        checkAndAlertUV(triggerLabel);
-                    }
-                    resolve();
-                },
+            (error) => {
+    console.warn("Geolocation error or denied:", error);
+
+    uvStatus.textContent = "Location access denied.";
+
+    if (userLat !== null && userLng !== null) {
+        checkAndAlertUV(triggerLabel);
+    } else {
+        setTimeout(() => {
+            if (confirm("Location was denied. Would you like to enter your location manually?")) {
+                manualLocation();
+            }
+        }, 100);
+    }
+
+    resolve();
+},
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         } else {
@@ -48,7 +55,38 @@ function updateLocationAndCheckUV(triggerLabel = "Routine Check") {
         }
     });
 }
+async function manualLocation() {
+    const location = prompt("Enter your city or suburb:");
 
+    if (!location) return;
+
+    uvStatus.textContent = "Finding location...";
+
+    try {
+        const response = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`
+        );
+
+        const data = await response.json();
+
+        if (!data.results || data.results.length === 0) {
+            uvStatus.textContent = "❌ Location not found. Try again.";
+            return;
+        }
+
+        userLat = data.results[0].latitude;
+        userLng = data.results[0].longitude;
+
+        uvStatus.textContent =
+            `✅ Location set to ${data.results[0].name}! Checking UV...`;
+
+        await checkAndAlertUV("Manual Location");
+
+    } catch (error) {
+        console.error("Manual location error:", error);
+        uvStatus.textContent = "❌ Couldn't find that location.";
+    }
+}
 // 1. Fetch Location Coordinates (Initial Button Click)
 locBtn.addEventListener('click', () => {
     updateLocationAndCheckUV("Initial Check");
