@@ -1,23 +1,22 @@
 const SUPABASE_URL = "https://ndosqkrtkybeiafagjto.supabase.co";
 
-// Your Supabase PUBLISHABLE key
+
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3EOT86U57-09W4m7BZq1Xw_tcL68Iiv";
+
+
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
 );
 
-// Global variables
-let userLat = null;
-let userLng = null;
-let alertIntervalTimer = null;
-// Global variables
 let userLat = null;
 let userLng = null;
 let alertIntervalTimer = null;
 
-// 2 hours in milliseconds (2 * 60 * 60 * 1000)
+
+
+
 // 💡 TEST TIP: Set to 10000 (10 seconds) during testing to see quick updates!
 const TWO_HOURS_MS = 7200000; 
 
