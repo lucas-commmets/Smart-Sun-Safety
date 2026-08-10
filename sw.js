@@ -1,17 +1,22 @@
 const CACHE_NAME = "sun-safety-tracker-v1";
 
-const APP_FILES = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./script.js",
-  "./manifest.json"
+const APP_ROOT = "/Smart-Sun-Safety/";
+
+const APP_SHELL = [
+  APP_ROOT,
+  APP_ROOT + "index.html",
+  APP_ROOT + "style.css",
+  APP_ROOT + "script.js",
+  APP_ROOT + "manifest.json",
+  APP_ROOT + "favicon.png",
+  APP_ROOT + "icon-192.png",
+  APP_ROOT + "icon-512.png"
 ];
 
 
-/* --------------------------------
-   INSTALL
--------------------------------- */
+/* -----------------------------------------
+INSTALL
+----------------------------------------- */
 
 self.addEventListener("install", (event) => {
 
@@ -20,20 +25,24 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
 
-        return cache.addAll(APP_FILES);
+        return cache.addAll(APP_SHELL);
+
+      })
+
+      .then(() => {
+
+        return self.skipWaiting();
 
       })
 
   );
 
-  self.skipWaiting();
-
 });
 
 
-/* --------------------------------
-   ACTIVATE
--------------------------------- */
+/* -----------------------------------------
+ACTIVATE
+----------------------------------------- */
 
 self.addEventListener("activate", (event) => {
 
@@ -45,71 +54,76 @@ self.addEventListener("activate", (event) => {
         return Promise.all(
 
           cacheNames
-            .filter(
-              (name) =>
-                name !== CACHE_NAME
-            )
-            .map(
-              (name) =>
-                caches.delete(name)
-            )
+            .filter((name) => {
+
+              return (
+                name !== CACHE_NAME &&
+                name.startsWith("sun-safety-tracker-")
+              );
+
+            })
+
+            .map((name) => {
+
+              return caches.delete(name);
+
+            })
 
         );
 
       })
 
-  );
+      .then(() => {
 
-  self.clients.claim();
+        return self.clients.claim();
+
+      })
+
+  );
 
 });
 
 
-/* --------------------------------
-   FETCH
--------------------------------- */
+/* -----------------------------------------
+FETCH
+----------------------------------------- */
 
 self.addEventListener("fetch", (event) => {
 
+  const request = event.request;
+
   /*
-    Only handle GET requests.
+  Only handle normal GET requests.
   */
 
-  if (event.request.method !== "GET") {
+  if (request.method !== "GET") {
     return;
   }
 
 
   /*
-    API requests should go
-    directly to the network.
+  API requests such as Open-Meteo should
+  always try the network first.
 
-    This prevents old UV data
-    from being accidentally cached.
+  We don't want yesterday's UV data being
+  shown as if it were current.
   */
 
-  const url =
-    new URL(event.request.url);
-
-
   if (
-    url.hostname.includes(
+    request.url.includes(
       "api.open-meteo.com"
-    ) ||
-    url.hostname.includes(
-      "nominatim.openstreetmap.org"
     )
   ) {
 
     event.respondWith(
 
-      fetch(event.request)
+      fetch(request)
+
         .catch(() => {
 
           return new Response(
             JSON.stringify({
-              error:
-                "Live data is currently unavailable."
+              error: "offline"
             }),
             {
               status: 503,
@@ -129,34 +143,38 @@ self.addEventListener("fetch", (event) => {
 
 
   /*
-    Normal website files:
-    Cache first, then network.
+  App files use cache-first.
+
+  This allows the PWA to open even when
+  the device is temporarily offline.
   */
 
   event.respondWith(
 
-    caches.match(event.request)
+    caches.match(request)
       .then((cachedResponse) => {
 
         if (cachedResponse) {
+
           return cachedResponse;
+
         }
 
 
-        return fetch(event.request)
+        return fetch(request)
           .then((networkResponse) => {
 
             /*
-              Save successful responses
-              for future offline use.
+            Only cache successful responses.
             */
 
             if (
               networkResponse &&
-              networkResponse.status === 200
+              networkResponse.status === 200 &&
+              networkResponse.type === "basic"
             ) {
 
-              const copy =
+              const responseClone =
                 networkResponse.clone();
 
 
@@ -164,8 +182,8 @@ self.addEventListener("fetch", (event) => {
                 .then((cache) => {
 
                   cache.put(
-                    event.request,
-                    copy
+                    request,
+                    responseClone
                   );
 
                 });
@@ -182,3 +200,161 @@ self.addEventListener("fetch", (event) => {
   );
 
 });
+
+
+/* -----------------------------------------
+PUSH NOTIFICATIONS
+----------------------------------------- */
+
+/*
+This allows your PWA to receive a push
+notification from a push server.
+
+It does NOT create the 2-hour schedule
+by itself.
+
+A push server is required to actually
+send scheduled notifications.
+*/
+
+self.addEventListener("push", (event) => {
+
+  let data = {};
+
+  try {
+
+    if (event.data) {
+
+      data =
+        event.data.json();
+
+    }
+
+  }
+
+  catch (error) {
+
+    data = {
+      title:
+        "Sun Safety Reminder ☀️",
+
+      body:
+        event.data
+          ? event.data.text()
+          : "Remember your sun protection."
+    };
+
+  }
+
+
+  const title =
+    data.title ||
+    "Sun Safety Reminder ☀️";
+
+
+  const options = {
+
+    body:
+      data.body ||
+      "Remember to check the UV and reapply sunscreen.",
+
+    icon:
+      "/Smart-Sun-Safety/icon-192.png",
+
+    badge:
+      "/Smart-Sun-Safety/icon-192.png",
+
+    tag:
+      data.tag ||
+      "sun-safety-reminder",
+
+    renotify:
+      true,
+
+    data: {
+      url:
+        data.url ||
+        "/Smart-Sun-Safety/"
+    }
+
+  };
+
+
+  event.waitUntil(
+
+    self.registration.showNotification(
+      title,
+      options
+    )
+
+  );
+
+});
+
+
+/* -----------------------------------------
+NOTIFICATION CLICK
+----------------------------------------- */
+
+self.addEventListener(
+  "notificationclick",
+  (event) => {
+
+    event.notification.close();
+
+
+    const destination =
+      event.notification.data?.url ||
+      "/Smart-Sun-Safety/";
+
+
+    event.waitUntil(
+
+      clients.matchAll({
+        type: "window",
+        includeUncontrolled: true
+      })
+
+      .then((clientList) => {
+
+        /*
+        If the PWA is already open,
+        focus it instead of opening
+        another copy.
+        */
+
+        for (
+          const client of clientList
+        ) {
+
+          if (
+            "focus" in client
+          ) {
+
+            return client.focus();
+
+          }
+
+        }
+
+
+        /*
+        Otherwise open the PWA.
+        */
+
+        if (
+          clients.openWindow
+        ) {
+
+          return clients.openWindow(
+            destination
+          );
+
+        }
+
+      })
+
+    );
+
+  }
+);
