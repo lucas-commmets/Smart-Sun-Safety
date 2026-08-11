@@ -102,7 +102,6 @@ function displayUV(uv) {
   uvLevelEl.textContent = level;
   $("uvAdvice").textContent = advice;
 
-  // Show protection alert when UV is 3 or higher
   if (currentUV >= 3) {
     $("protectionAlert").classList.remove("inactive");
   } else {
@@ -229,7 +228,7 @@ async function requestNotifications() {
 function sendNotification(uv) {
   if (Notification.permission === "granted") {
     new Notification("Sun Safety Reminder ☀️", {
-      body: `Current UV index is ${uv.toFixed(1)}. Don't forget sunscreen and hat!`,
+      body: `Current live UV index is ${uv.toFixed(1)}. Sun protection required! Slip, slop, slap!`,
       icon: "favicon.ico"
     });
   }
@@ -239,10 +238,11 @@ async function checkReminder() {
   if (latitude === null || longitude === null) return;
 
   try {
+    // 1. Fetch live UV index for current location
     const uv = await getUV(latitude, longitude);
     displayUV(uv);
 
-    // Only send notification if UV is 3 or higher
+    // 2. Only send notification if live UV is 3 or greater
     if (uv >= 3) {
       sendNotification(uv);
     }
@@ -270,16 +270,26 @@ async function toggleReminders() {
     $("reminderToggle").setAttribute("aria-pressed", "true");
     $("reminderStatus").textContent = "On — every 2 hours";
 
-    // 1. Check immediately when enabled
+    // Immediate confirmation notification
+    if (Notification.permission === "granted") {
+      new Notification("Sun Safety Reminders Enabled ☀️", {
+        body: "You will receive reminders every 2 hours when the live UV index is 3 or higher.",
+        icon: "favicon.ico"
+      });
+    }
+
+    // Check live UV immediately
     await checkReminder();
 
-    // 2. Repeat every 2 hours (2 * 60 * 60 * 1000 ms)
+    // Repeat every 2 hours (2 hours * 60 mins * 60 secs * 1000 ms)
     reminderTimer = setInterval(checkReminder, 2 * 60 * 60 * 1000);
 
   } else {
     remindersEnabled = false;
 
-    clearInterval(reminderTimer);
+    if (reminderTimer) {
+      clearInterval(reminderTimer);
+    }
 
     $("reminderToggle").classList.remove("on");
     $("reminderToggle").setAttribute("aria-pressed", "false");
