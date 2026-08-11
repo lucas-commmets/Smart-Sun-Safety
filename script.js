@@ -23,7 +23,7 @@ let autoUpdateTimer = null;
 const $ = id => document.getElementById(id);
 
 /* -----------------------------
-   UV API
+   API
 ----------------------------- */
 
 async function getUV(lat, lon) {
@@ -36,10 +36,10 @@ async function getUV(lat, lon) {
     `&timezone=auto`;
 
   const response = await fetch(url);
-  if (!response.ok) throw new Error("UV service unavailable");
+  if (!response.ok) throw new Error("service unavailable");
 
   const data = await response.json();
-  if (!data.hourly?.uv_index) throw new Error("UV data unavailable");
+  if (!data.hourly?.uv_index) throw new Error("data unavailable");
 
   const now = Date.now();
   let closestIndex = 0;
@@ -61,10 +61,10 @@ async function getUV(lat, lon) {
 ----------------------------- */
 
 function displayUV(uv) {
-  currentUV = Number(uv);
+  current= Number(uv);
   $("uvNumber").textContent = currentUV.toFixed(1);
 
-  const percentage = Math.min(Math.max((currentUV / 12) * 100, 0), 100);
+  const percentage = Math.min(Math.max((current/ 12) * 100, 0), 100);
   $("uvGauge").style.width = `${percentage}%`;
 
   let level;
@@ -101,7 +101,7 @@ function displayUV(uv) {
   uvLevelEl.textContent = level;
   $("uvAdvice").textContent = advice;
 
-  if (currentUV >= 3) {
+  if (currentUV >= 0) {
     $("protectionAlert").classList.remove("inactive");
   } else {
     $("protectionAlert").classList.add("inactive");
@@ -252,7 +252,7 @@ async function registerPeriodicSync() {
     if ("periodicSync" in registration) {
       try {
         await registration.periodicSync.register("check-uv-reminder", {
-          minInterval: 2 * 60 * 60 * 1000
+          minInterval: 10 * 1000
         });
       } catch (error) {
         console.log("Periodic Sync registration skipped:", error);
