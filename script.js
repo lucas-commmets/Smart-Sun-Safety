@@ -19,6 +19,7 @@ let longitude = null;
 let currentUV = null;
 let remindersEnabled = false;
 let autoUpdateTimer = null;
+let reminderTimer = null; // Timer for repeating reminders
 
 const $ = id => document.getElementById(id);
 
@@ -74,33 +75,34 @@ function displayUV(uv) {
   if (currentUV < 3) {
     level = "Low";
     advice = "Enjoy the outdoors and keep your usual sun-safety habits.";
-    uvLevelEl.style.backgroundColor = "#d4edda"; // Light Green
-    uvLevelEl.style.color = "#155724";           // Dark Green Text
+    uvLevelEl.style.backgroundColor = "#d4edda";
+    uvLevelEl.style.color = "#155724";
   } else if (currentUV < 6) {
     level = "Moderate";
     advice = "Protection is recommended. Slip, slop, slap, seek and slide.";
-    uvLevelEl.style.backgroundColor = "#fff3cd"; // Light Yellow
-    uvLevelEl.style.color = "#856404";           // Dark Yellow/Black Text
+    uvLevelEl.style.backgroundColor = "#fff3cd";
+    uvLevelEl.style.color = "#856404";
   } else if (currentUV < 8) {
     level = "High";
     advice = "Sun protection is important. Reduce direct sun exposure where possible.";
-    uvLevelEl.style.backgroundColor = "#f8d7da"; // Light Red
-    uvLevelEl.style.color = "#721c24";           // Dark Red Text
+    uvLevelEl.style.backgroundColor = "#f8d7da";
+    uvLevelEl.style.color = "#721c24";
   } else if (currentUV < 11) {
     level = "Very High";
     advice = "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
-    uvLevelEl.style.backgroundColor = "#e1bee7"; // Light Purple
-    uvLevelEl.style.color = "#4a148c";           // Dark Purple Text
+    uvLevelEl.style.backgroundColor = "#e1bee7";
+    uvLevelEl.style.color = "#4a148c";
   } else {
     level = "Extreme";
     advice = "Minimise direct sun exposure and take extra care.";
-    uvLevelEl.style.backgroundColor = "#d1c4e9"; // Deep Purple
-    uvLevelEl.style.color = "#311b92";           // Dark Purple Text
+    uvLevelEl.style.backgroundColor = "#d1c4e9";
+    uvLevelEl.style.color = "#311b92";
   }
 
   uvLevelEl.textContent = level;
   $("uvAdvice").textContent = advice;
 
+  // Set to >= 0 for testing low UV times
   if (currentUV >= 0) {
     $("protectionAlert").classList.remove("inactive");
   } else {
@@ -138,19 +140,8 @@ async function loadManualLocation() {
 
     displayUV(uv);
     $("locationMessage").textContent = "Live UV data is being monitored for this location.";
-    $("locationSuccess").classList.add("show");
+    if ($("locationSuccess")) $("locationSuccess").classList.add("show");
     startAutoUpdate();
-
-    if (remindersEnabled && "serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      if (registration.active) {
-        registration.active.postMessage({
-          action: "UPDATE_LOCATION",
-          latitude: latitude,
-          longitude: longitude
-        });
-      }
-    }
   } catch (error) {
     console.error(error);
     $("locationMessage").textContent =
@@ -186,17 +177,6 @@ function useMyLocation() {
         $("locationMessage").textContent =
           "Live UV data is being monitored for your current location.";
         startAutoUpdate();
-
-        if (remindersEnabled && "serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-          if (registration.active) {
-            registration.active.postMessage({
-              action: "UPDATE_LOCATION",
-              latitude: latitude,
-              longitude: longitude
-            });
-          }
-        }
       } catch (error) {
         $("locationMessage").textContent =
           "Your location was found, but the UV service couldn't be reached.";
@@ -246,18 +226,28 @@ async function requestNotifications() {
   return permission === "granted";
 }
 
-async function registerPeriodicSync() {
-  if ("serviceWorker" in navigator) {
-    const registration = await navigator.serviceWorker.ready;
-    if ("periodicSync" in registration) {
-      try {
-        await registration.periodicSync.register("check-uv-reminder", {
-          minInterval: 10000
-        });
-      } catch (error) {
-        console.log("Periodic Sync registration skipped:", error);
-      }
+function sendNotification(uv) {
+  if (Notification.permission === "granted") {
+    new Notification("Sun Safety Reminder ☀️", {
+      body: `Current UV index is ${uv.toFixed(1)}. Don't forget sunscreen and hat!`,
+      icon: "favicon.png"
+    });
+  }
+}
+
+async function checkReminder() {
+  if (latitude === null || longitude === null) return;
+
+  try {
+    const uv = await getUV(latitude, longitude);
+    displayUV(uv);
+
+    // TESTING MODE: Trigger for UV >= 0
+    if (uv >= 0) {
+      sendNotification(uv);
     }
+  } catch (error) {
+    console.log("Reminder check failed.");
   }
 }
 
@@ -278,35 +268,22 @@ async function toggleReminders() {
 
     $("reminderToggle").classList.add("on");
     $("reminderToggle").setAttribute("aria-pressed", "true");
-    $("reminderStatus").textContent = "On — every 2 hours";
+    $("reminderStatus").textContent = "On — testing every 10 seconds";
 
-    await registerPeriodicSync();
+    // 1. Fire immediately
+    await checkReminder();
 
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      if (registration.active) {
-        registration.active.postMessage({
-          action: "START_REMINDERS",
-          latitude: latitude,
-          longitude: longitude
-        });
-      }
-    }
+    // 2. Repeat every 10 seconds (Change to 2 * 60 * 60 * 1000 for production)
+    reminderTimer = setInterval(checkReminder, 10000);
+
   } else {
     remindersEnabled = false;
+
+    clearInterval(reminderTimer);
 
     $("reminderToggle").classList.remove("on");
     $("reminderToggle").setAttribute("aria-pressed", "false");
     $("reminderStatus").textContent = "Currently off";
-
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      if (registration.active) {
-        registration.active.postMessage({
-          action: "STOP_REMINDERS"
-        });
-      }
-    }
   }
 }
 
