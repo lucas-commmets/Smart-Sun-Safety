@@ -1,555 +1,327 @@
 const locations = {
-  sydney: { name: "Sydney", state: "NSW", latitude: -33.8688, longitude: 151.2093 },
-  melbourne: { name: "Melbourne", state: "VIC", latitude: -37.8136, longitude: 144.9631 },
-  brisbane: { name: "Brisbane", state: "QLD", latitude: -27.4698, longitude: 153.0251 },
-  perth: { name: "Perth", state: "WA", latitude: -31.9505, longitude: 115.8605 },
-  adelaide: { name: "Adelaide", state: "SA", latitude: -34.9285, longitude: 138.6007 },
-  canberra: { name: "Canberra", state: "ACT", latitude: -35.2809, longitude: 149.1300 },
-  hobart: { name: "Hobart", state: "TAS", latitude: -42.8821, longitude: 147.3272 },
-  darwin: { name: "Darwin", state: "NT", latitude: -12.4634, longitude: 130.8456 },
-  newcastle: { name: "Newcastle", state: "NSW", latitude: -32.9283, longitude: 151.7817 },
-  wollongong: { name: "Wollongong", state: "NSW", latitude: -34.4278, longitude: 150.8931 },
-  geelong: { name: "Geelong", state: "VIC", latitude: -38.1499, longitude: 144.3617 },
-  "gold-coast": { name: "Gold Coast", state: "QLD", latitude: -28.0167, longitude: 153.4000 },
-  "sunshine-coast": { name: "Sunshine Coast", state: "QLD", latitude: -26.6500, longitude: 153.0667 }
+  sydney: { name: "Sydney", state: "NSW", latitude: -33.8688, longitude: 151.2093 },
+  melbourne: { name: "Melbourne", state: "VIC", latitude: -37.8136, longitude: 144.9631 },
+  brisbane: { name: "Brisbane", state: "QLD", latitude: -27.4698, longitude: 153.0251 },
+  perth: { name: "Perth", state: "WA", latitude: -31.9505, longitude: 115.8605 },
+  adelaide: { name: "Adelaide", state: "SA", latitude: -34.9285, longitude: 138.6007 },
+  canberra: { name: "Canberra", state: "ACT", latitude: -35.2809, longitude: 149.1300 },
+  hobart: { name: "Hobart", state: "TAS", latitude: -42.8821, longitude: 147.3272 },
+  darwin: { name: "Darwin", state: "NT", latitude: -12.4634, longitude: 130.8456 },
+  newcastle: { name: "Newcastle", state: "NSW", latitude: -32.9283, longitude: 151.7817 },
+  wollongong: { name: "Wollongong", state: "NSW", latitude: -34.4278, longitude: 150.8931 },
+  geelong: { name: "Geelong", state: "VIC", latitude: -38.1499, longitude: 144.3617 },
+  "gold-coast": { name: "Gold Coast", state: "QLD", latitude: -28.0167, longitude: 153.4000 },
+  "sunshine-coast": { name: "Sunshine Coast", state: "QLD", latitude: -26.6500, longitude: 153.0667 }
 };
 
 let latitude = null;
 let longitude = null;
 let currentUV = null;
 let remindersEnabled = false;
-let reminderTimer = null;
 let autoUpdateTimer = null;
 
 const $ = id => document.getElementById(id);
 
-
 /* -----------------------------
-   UV API
+   UV API
 ----------------------------- */
 
 async function getUV(lat, lon) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${lat}` +
+    `&longitude=${lon}` +
+    `&hourly=uv_index` +
+    `&forecast_days=1` +
+    `&timezone=auto`;
 
-  const url =
-    `https://api.open-meteo.com/v1/forecast` +
-    `?latitude=${lat}` +
-    `&longitude=${lon}` +
-    `&hourly=uv_index` +
-    `&forecast_days=1` +
-    `&timezone=auto`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("UV service unavailable");
 
-  const response = await fetch(url);
+  const data = await response.json();
+  if (!data.hourly?.uv_index) throw new Error("UV data unavailable");
 
-  if (!response.ok) {
-    throw new Error("UV service unavailable");
-  }
+  const now = Date.now();
+  let closestIndex = 0;
+  let smallestDifference = Infinity;
 
-  const data = await response.json();
+  data.hourly.time.forEach((time, index) => {
+    const difference = Math.abs(new Date(time).getTime() - now);
+    if (difference < smallestDifference) {
+      smallestDifference = difference;
+      closestIndex = index;
+    }
+  });
 
-  if (!data.hourly?.uv_index) {
-    throw new Error("UV data unavailable");
-  }
-
-  const now = Date.now();
-
-  let closestIndex = 0;
-  let smallestDifference = Infinity;
-
-  data.hourly.time.forEach((time, index) => {
-
-    const difference =
-      Math.abs(
-        new Date(time).getTime() - now
-      );
-
-    if (difference < smallestDifference) {
-      smallestDifference = difference;
-      closestIndex = index;
-    }
-
-  });
-
-  return data.hourly.uv_index[closestIndex];
+  return data.hourly.uv_index[closestIndex];
 }
 
-
 /* -----------------------------
-   DISPLAY UV
+   DISPLAY UV
 ----------------------------- */
 
 function displayUV(uv) {
+  currentUV = Number(uv);
+  $("uvNumber").textContent = currentUV.toFixed(1);
 
-  currentUV = Number(uv);
+  const percentage = Math.min(Math.max((currentUV / 12) * 100, 0), 100);
+  $("uvGauge").style.width = `${percentage}%`;
 
-  $("uvNumber").textContent =
-    currentUV.toFixed(1);
+  let level;
+  let advice;
+  const uvLevelEl = $("uvLevel");
 
-  const percentage =
-    Math.min(
-      Math.max(currentUV / 12 * 100, 0),
-      100
-    );
+  if (currentUV < 3) {
+    level = "Low";
+    advice = "Enjoy the outdoors and keep your usual sun-safety habits.";
+    uvLevelEl.style.backgroundColor = "#d4edda"; // Light Green
+    uvLevelEl.style.color = "#155724";           // Dark Green Text
+  } else if (currentUV < 6) {
+    level = "Moderate";
+    advice = "Protection is recommended. Slip, slop, slap, seek and slide.";
+    uvLevelEl.style.backgroundColor = "#fff3cd"; // Light Yellow
+    uvLevelEl.style.color = "#856404";           // Dark Yellow/Black Text
+  } else if (currentUV < 8) {
+    level = "High";
+    advice = "Sun protection is important. Reduce direct sun exposure where possible.";
+    uvLevelEl.style.backgroundColor = "#f8d7da"; // Light Red
+    uvLevelEl.style.color = "#721c24";           // Dark Red Text
+  } else if (currentUV < 11) {
+    level = "Very High";
+    advice = "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
+    uvLevelEl.style.backgroundColor = "#e1bee7"; // Light Purple
+    uvLevelEl.style.color = "#4a148c";           // Dark Purple Text
+  } else {
+    level = "Extreme";
+    advice = "Minimise direct sun exposure and take extra care.";
+    uvLevelEl.style.backgroundColor = "#d1c4e9"; // Deep Purple
+    uvLevelEl.style.color = "#311b92";           // Dark Purple Text
+  }
 
-  $("uvGauge").style.width =
-    `${percentage}%`;
+  uvLevelEl.textContent = level;
+  $("uvAdvice").textContent = advice;
 
-  let level;
-  let advice;
+  if (currentUV >= 3) {
+    $("protectionAlert").classList.remove("inactive");
+  } else {
+    $("protectionAlert").classList.add("inactive");
+  }
 
-  if (currentUV < 3) {
-
-    level = "Low";
-
-    advice =
-      "Enjoy the outdoors and keep your usual sun-safety habits.";
-
-  } else if (currentUV < 6) {
-
-    level = "Moderate";
-
-    advice =
-      "Protection is recommended. Slip, slop, slap, seek and slide.";
-
-  } else if (currentUV < 8) {
-
-    level = "High";
-
-    advice =
-      "Sun protection is important. Reduce direct sun exposure where possible.";
-
-  } else if (currentUV < 11) {
-
-    level = "Very High";
-
-    advice =
-      "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
-
-  } else {
-
-    level = "Extreme";
-
-    advice =
-      "Minimise direct sun exposure and take extra care.";
-
-  }
-
-  $("uvLevel").textContent = level;
-  $("uvAdvice").textContent = advice;
-
-  if (currentUV >= 3) {
-
-    $("protectionAlert")
-      .classList.remove("inactive");
-
-  } else {
-
-    $("protectionAlert")
-      .classList.add("inactive");
-
-  }
-
-  $("updated").textContent =
-    `Updated ${new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit"
-    })}`;
+  $("updated").textContent = `Updated ${new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
+  })}`;
 }
 
-
 /* -----------------------------
-   LOAD A MANUAL LOCATION
+   LOAD MANUAL LOCATION
 ----------------------------- */
 
 async function loadManualLocation() {
+  const selected = $("locationSelect").value;
+  if (!selected) {
+    alert("Please choose a location first.");
+    return;
+  }
 
-  const selected =
-    $("locationSelect").value;
+  const location = locations[selected];
+  if (!location) return;
 
-  if (!selected) {
+  $("locationName").textContent = `${location.name}, ${location.state}`;
+  $("locationMessage").textContent = "Getting the latest UV level...";
+  $("manualButton").disabled = true;
 
-    alert("Please choose a location first.");
+  try {
+    const uv = await getUV(location.latitude, location.longitude);
+    latitude = location.latitude;
+    longitude = location.longitude;
 
-    return;
-  }
+    displayUV(uv);
+    $("locationMessage").textContent = "Live UV data is being monitored for this location.";
+    $("locationSuccess").classList.add("show");
+    startAutoUpdate();
 
-  const location =
-    locations[selected];
+    if (remindersEnabled && "serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration.active) {
+        registration.active.postMessage({
+          action: "UPDATE_LOCATION",
+          latitude: latitude,
+          longitude: longitude
+        });
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    $("locationMessage").textContent =
+      "The UV service could not be reached. Your school network may be blocking it.";
+  }
 
-  if (!location) return;
-
-  $("locationName").textContent =
-    `${location.name}, ${location.state}`;
-
-  $("locationMessage").textContent =
-    "Getting the latest UV level...";
-
-  $("manualButton").disabled = true;
-
-  try {
-
-    const uv =
-      await getUV(
-        location.latitude,
-        location.longitude
-      );
-
-    /*
-      IMPORTANT:
-      Manual location has now been selected.
-
-      We do NOT request geolocation.
-    */
-
-    latitude =
-      location.latitude;
-
-    longitude =
-      location.longitude;
-
-    displayUV(uv);
-
-    $("locationMessage").textContent =
-      "Live UV data is being monitored for this location.";
-
-    $("locationSuccess")
-      .classList.add("show");
-
-    startAutoUpdate();
-
-  } catch (error) {
-
-    console.error(error);
-
-    $("locationMessage").textContent =
-      "The UV service could not be reached. Your school network may be blocking it.";
-
-  }
-
-  $("manualButton").disabled = false;
+  $("manualButton").disabled = false;
 }
 
-
 /* -----------------------------
-   DEVICE LOCATION
+   DEVICE LOCATION
 ----------------------------- */
 
 function useMyLocation() {
+  if (!navigator.geolocation) {
+    alert("Location isn't supported. Please choose a location manually.");
+    return;
+  }
 
-  if (!navigator.geolocation) {
+  $("locationButton").disabled = true;
+  $("locationButton").textContent = "📡 Finding location...";
 
-    alert(
-      "Location isn't supported. Please choose a location manually."
-    );
+  navigator.geolocation.getCurrentPosition(
+    async position => {
+      latitude = position.coords.latitude;
+      longitude = position.coords.longitude;
 
-    return;
-  }
+      $("locationName").textContent = "Your current location";
 
-  $("locationButton").disabled = true;
+      try {
+        const uv = await getUV(latitude, longitude);
+        displayUV(uv);
+        $("locationMessage").textContent =
+          "Live UV data is being monitored for your current location.";
+        startAutoUpdate();
 
-  $("locationButton").textContent =
-    "📡 Finding location...";
+        if (remindersEnabled && "serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration.active) {
+            registration.active.postMessage({
+              action: "UPDATE_LOCATION",
+              latitude: latitude,
+              longitude: longitude
+            });
+          }
+        }
+      } catch (error) {
+        $("locationMessage").textContent =
+          "Your location was found, but the UV service couldn't be reached.";
+      }
 
-  navigator.geolocation.getCurrentPosition(
-
-    async position => {
-
-      latitude =
-        position.coords.latitude;
-
-      longitude =
-        position.coords.longitude;
-
-      $("locationName").textContent =
-        "Your current location";
-
-      try {
-
-        const uv =
-          await getUV(
-            latitude,
-            longitude
-          );
-
-        displayUV(uv);
-
-        $("locationMessage").textContent =
-          "Live UV data is being monitored for your current location.";
-
-        startAutoUpdate();
-
-      } catch (error) {
-
-        $("locationMessage").textContent =
-          "Your location was found, but the UV service couldn't be reached.";
-
-      }
-
-      $("locationButton").disabled = false;
-
-      $("locationButton").textContent =
-        "🔄 Refresh My Location & UV";
-    },
-
-    () => {
-
-      $("locationButton").disabled = false;
-
-      $("locationButton").textContent =
-        "📍 Use My Location";
-
-      alert(
-        "Location access was unavailable. Choose a location manually instead."
-      );
-    }
-
-  );
+      $("locationButton").disabled = false;
+      $("locationButton").textContent = "🔄 Refresh My Location & UV";
+    },
+    () => {
+      $("locationButton").disabled = false;
+      $("locationButton").textContent = "📍 Use My Location";
+      alert("Location access was unavailable. Choose a location manually instead.");
+    }
+  );
 }
 
-
 /* -----------------------------
-   AUTOMATIC UV UPDATES
+   AUTOMATIC UV UPDATES
 ----------------------------- */
 
 function startAutoUpdate() {
-
-  clearInterval(autoUpdateTimer);
-
-  autoUpdateTimer =
-    setInterval(
-      refreshUV,
-      15 * 60 * 1000
-    );
+  clearInterval(autoUpdateTimer);
+  autoUpdateTimer = setInterval(refreshUV, 15 * 60 * 1000);
 }
-
 
 async function refreshUV() {
-
-  if (
-    latitude === null ||
-    longitude === null
-  ) {
-    return;
-  }
-
-  try {
-
-    const uv =
-      await getUV(
-        latitude,
-        longitude
-      );
-
-    displayUV(uv);
-
-  } catch (error) {
-
-    console.log(
-      "Automatic update unavailable."
-    );
-
-  }
+  if (latitude === null || longitude === null) return;
+  try {
+    const uv = await getUV(latitude, longitude);
+    displayUV(uv);
+  } catch (error) {
+    console.log("Automatic update unavailable.");
+  }
 }
 
-
 /* -----------------------------
-   NOTIFICATIONS
+   NOTIFICATIONS & REMINDERS
 ----------------------------- */
 
 async function requestNotifications() {
+  if (!("Notification" in window)) {
+    alert("Notifications aren't supported by this browser.");
+    return false;
+  }
 
-  if (!("Notification" in window)) {
-
-    alert(
-      "Notifications aren't supported by this browser."
-    );
-
-    return false;
-  }
-
-  const permission =
-    await Notification.requestPermission();
-
-  return permission === "granted";
+  const permission = await Notification.requestPermission();
+  return permission === "granted";
 }
 
-
-function sendNotification(uv) {
-
-  if (
-    "Notification" in window &&
-    Notification.permission === "granted"
-  ) {
-
-    new Notification(
-      "Sun Safety Reminder ☀️",
-      {
-        body:
-          `UV is ${Number(uv).toFixed(1)}. Sun protection is recommended.`,
-        icon: "favicon.png"
-      }
-    );
-
-  }
-
+async function registerPeriodicSync() {
+  if ("serviceWorker" in navigator) {
+    const registration = await navigator.serviceWorker.ready;
+    if ("periodicSync" in registration) {
+      try {
+        await registration.periodicSync.register("check-uv-reminder", {
+          minInterval: 10000
+        });
+      } catch (error) {
+        console.log("Periodic Sync registration skipped:", error);
+      }
+    }
+  }
 }
-
-
-/* -----------------------------
-   2-HOUR REMINDERS
------------------------------ */
 
 async function toggleReminders() {
+  if (!remindersEnabled) {
+    if (latitude === null || longitude === null) {
+      alert("Please choose a location first.");
+      return;
+    }
 
-  if (!remindersEnabled) {
+    const allowed = await requestNotifications();
+    if (!allowed) {
+      alert("Please allow notifications in your browser to use reminders.");
+      return;
+    }
 
-    /*
-      IMPORTANT:
-      Reminders require a location,
-      but this can be a manually selected
-      location. Browser location permission
-      is NOT required.
-    */
+    remindersEnabled = true;
 
-    if (
-      latitude === null ||
-      longitude === null
-    ) {
+    $("reminderToggle").classList.add("on");
+    $("reminderToggle").setAttribute("aria-pressed", "true");
+    $("reminderStatus").textContent = "On — every 2 hours";
 
-      alert(
-        "Please choose a location first."
-      );
+    await registerPeriodicSync();
 
-      return;
-    }
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration.active) {
+        registration.active.postMessage({
+          action: "START_REMINDERS",
+          latitude: latitude,
+          longitude: longitude
+        });
+      }
+    }
+  } else {
+    remindersEnabled = false;
 
-    const allowed =
-      await requestNotifications();
+    $("reminderToggle").classList.remove("on");
+    $("reminderToggle").setAttribute("aria-pressed", "false");
+    $("reminderStatus").textContent = "Currently off";
 
-    if (!allowed) {
-
-      alert(
-        "Please allow notifications in your browser to use reminders."
-      );
-
-      return;
-    }
-
-    remindersEnabled = true;
-
-    $("reminderToggle")
-      .classList.add("on");
-
-    $("reminderToggle")
-      .setAttribute(
-        "aria-pressed",
-        "true"
-      );
-
-    $("reminderStatus").textContent =
-      "On — every 2 hours";
-
-    /*
-      Check immediately.
-    */
-
-    await checkReminder();
-
-    /*
-      Then every 2 hours.
-    */
-
-    reminderTimer =
-      setInterval(
-        checkReminder,
-        2 * 60 * 60 * 1000
-      );
-
-  } else {
-
-    remindersEnabled = false;
-
-    clearInterval(
-      reminderTimer
-    );
-
-    $("reminderToggle")
-      .classList.remove("on");
-
-    $("reminderToggle")
-      .setAttribute(
-        "aria-pressed",
-        "false"
-      );
-
-    $("reminderStatus").textContent =
-      "Currently off";
-  }
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration.active) {
+        registration.active.postMessage({
+          action: "STOP_REMINDERS"
+        });
+      }
+    }
+  }
 }
 
+/* -----------------------------
+   BUTTON LISTENERS
+----------------------------- */
 
-async function checkReminder() {
+$("locationButton").addEventListener("click", useMyLocation);
+$("manualButton").addEventListener("click", loadManualLocation);
+$("reminderToggle").addEventListener("click", toggleReminders);
 
-  if (
-    latitude === null ||
-    longitude === null
-  ) {
-    return;
-  }
+/* -----------------------------
+   FOOTER YEAR
+----------------------------- */
 
-  try {
-
-    const uv =
-      await getUV(
-        latitude,
-        longitude
-      );
-
-    displayUV(uv);
-
-    if (uv >= 3) {
-
-      sendNotification(uv);
-
-    }
-
-  } catch (error) {
-
-    console.log(
-      "Reminder check failed."
-    );
-
-  }
+if ($("year")) {
+  $("year").textContent = new Date().getFullYear();
 }
-
-
-/* -----------------------------
-   BUTTONS
------------------------------ */
-
-$("locationButton")
-  .addEventListener(
-    "click",
-    useMyLocation
-  );
-
-
-$("manualButton")
-  .addEventListener(
-    "click",
-    loadManualLocation
-  );
-
-
-$("reminderToggle")
-  .addEventListener(
-    "click",
-    toggleReminders
-  );
-
-
-/* -----------------------------
-   YEAR
------------------------------ */
-
-$("year").textContent =
-  new Date().getFullYear();
