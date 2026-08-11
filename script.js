@@ -101,7 +101,7 @@ function displayUV(uv) {
   uvLevelEl.textContent = level;
   $("uvAdvice").textContent = advice;
 
-  if (currentUV >= 3) {
+  if (currentUV >= 0) {
     $("protectionAlert").classList.remove("inactive");
   } else {
     $("protectionAlert").classList.add("inactive");
@@ -252,7 +252,7 @@ async function registerPeriodicSync() {
     if ("periodicSync" in registration) {
       try {
         await registration.periodicSync.register("check-uv-reminder", {
-          minInterval: 2 * 60 * 60 * 1000
+          minInterval: 10000
         });
       } catch (error) {
         console.log("Periodic Sync registration skipped:", error);
