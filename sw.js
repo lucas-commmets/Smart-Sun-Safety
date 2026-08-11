@@ -1,84 +1,72 @@
-const CACHE_NAME = "sun-safety-tracker-v2"; // Bumped version to force fresh cache
+const CACHE_NAME = "sun-safety-tracker-v1";
 
-const APP_ROOT = "/Smart-Sun-Safety/";
-
-const APP_SHELL = [
-  APP_ROOT,
-  APP_ROOT + "index.html",
-  APP_ROOT + "style.css",
-  APP_ROOT + "script.js",
-  APP_ROOT + "manifest.json",
-  APP_ROOT + "sun-favicon.ico",
-  APP_ROOT + "sun-icon-192.png",
-  APP_ROOT + "sun-icon-512.png"
+const APP_FILES = [
+  "./",
+  "./index.html",
+  "./style.css",
+  "./script.js",
+  "./manifest.json"
 ];
 
+let reminderInterval = null;
+let savedLocation = null;
 
-/* -----------------------------------------
-INSTALL
------------------------------------------ */
+/* --------------------------------
+   INSTALL
+-------------------------------- */
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(APP_SHELL);
-      })
-      .then(() => {
-        return self.skipWaiting();
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(APP_FILES);
+    })
   );
+  self.skipWaiting();
 });
 
-
-/* -----------------------------------------
-ACTIVATE
------------------------------------------ */
+/* --------------------------------
+   ACTIVATE
+-------------------------------- */
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => {
-              return (
-                name !== CACHE_NAME &&
-                name.startsWith("sun-safety-tracker-")
-              );
-            })
-            .map((name) => {
-              return caches.delete(name);
-            })
-        );
-      })
-      .then(() => {
-        return self.clients.claim();
-      })
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    })
   );
+  self.clients.claim();
 });
 
-
-/* -----------------------------------------
-FETCH
------------------------------------------ */
+/* --------------------------------
+   FETCH
+-------------------------------- */
 
 self.addEventListener("fetch", (event) => {
-  const request = event.request;
-
-  if (request.method !== "GET") {
+  if (event.request.method !== "GET") {
     return;
   }
 
-  // API requests (network first)
-  if (request.url.includes("api.open-meteo.com")) {
+  const url = new URL(event.request.url);
+
+  if (
+    url.hostname.includes("api.open-meteo.com") ||
+    url.hostname.includes("nominatim.openstreetmap.org")
+  ) {
     event.respondWith(
-      fetch(request).catch(() => {
+      fetch(event.request).catch(() => {
         return new Response(
-          JSON.stringify({ error: "offline" }),
+          JSON.stringify({
+            error: "Live data is currently unavailable."
+          }),
           {
             status: 503,
-            headers: { "Content-Type": "application/json" }
+            headers: {
+              "Content-Type": "application/json"
+            }
           }
         );
       })
@@ -86,22 +74,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App files (cache first)
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
+    caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      return fetch(request).then((networkResponse) => {
-        if (
-          networkResponse &&
-          networkResponse.status === 200 &&
-          networkResponse.type === "basic"
-        ) {
-          const responseClone = networkResponse.clone();
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const copy = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+            cache.put(event.request, copy);
           });
         }
         return networkResponse;
@@ -110,66 +93,96 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+/* --------------------------------
+   BACKGROUND UV & NOTIFICATIONS
+-------------------------------- */
 
-/* -----------------------------------------
-PUSH NOTIFICATIONS
------------------------------------------ */
+// 1. Send welcome notification
+function sendWelcomeNotification() {
+  self.registration.showNotification("Automated UV alerts Active!", {
+    body: "We'll remind you every 2 hour when the UV is 3 or higher.",
+    icon: "favicon.ico",
+    badge: "favicon.ico"
+  });
+}
 
-self.addEventListener("push", (event) => {
-  let data = {};
-
+// 2. Fetch live UV data & send sunscreen reminder if UV >= 3
+async function checkAndSendUVReminder(lat, lon) {
   try {
-    if (event.data) {
-      data = event.data.json();
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=uv_index&forecast_days=1&timezone=auto`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.hourly?.uv_index) return;
+
+    const now = Date.now();
+    let closestIndex = 0;
+    let smallestDifference = Infinity;
+
+    data.hourly.time.forEach((time, index) => {
+      const difference = Math.abs(new Date(time).getTime() - now);
+      if (difference < smallestDifference) {
+        smallestDifference = difference;
+        closestIndex = index;
+      }
+    });
+
+    const currentUV = Number(data.hourly.uv_index[closestIndex]);
+
+    if (currentUV >= 3) {
+      self.registration.showNotification("Sunscreen Remindeer", {
+        body: `It's been 2 hrs UV is ${currentUV.toFixed(1)} please reapply sunscreen`,
+        icon: "favicon.ico",
+        badge: "favicon.ico"
+      });
     }
-  } catch (error) {
-    data = {
-      title: "Sun Safety Reminder ☀️",
-      body: event.data ? event.data.text() : "Remember your sun protection."
-    };
+  } catch (err) {
+    console.error("Failed to check background UV:", err);
   }
+}
 
-  const title = data.title || "Sun Safety Reminder ☀️";
+// Message Listener from Script.js
+self.addEventListener("message", (event) => {
+  if (event.data) {
+    if (event.data.action === "START_REMINDERS") {
+      savedLocation = {
+        latitude: event.data.latitude,
+        longitude: event.data.longitude
+      };
 
-  const options = {
-    body: data.body || "Remember to check the UV and reapply sunscreen.",
-    icon: APP_ROOT + "sun-icon-192.png",
-    badge: APP_ROOT + "sun-icon-192.png",
-    tag: data.tag || "sun-safety-reminder",
-    renotify: true,
-    data: {
-      url: data.url || APP_ROOT
+      // Send initial welcome notification
+      sendWelcomeNotification();
+
+      if (reminderInterval) clearInterval(reminderInterval);
+
+      // Schedule 2-hour interval (7,200,000 ms)
+      const TWO_HOURS = 2 * 60 * 60 * 1000;
+      reminderInterval = setInterval(() => {
+        if (savedLocation) {
+          checkAndSendUVReminder(savedLocation.latitude, savedLocation.longitude);
+        }
+      }, TWO_HOURS);
     }
-  };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+    if (event.data.action === "UPDATE_LOCATION") {
+      savedLocation = {
+        latitude: event.data.latitude,
+        longitude: event.data.longitude
+      };
+    }
+
+    if (event.data.action === "STOP_REMINDERS") {
+      if (reminderInterval) clearInterval(reminderInterval);
+      savedLocation = null;
+    }
+  }
 });
 
-
-/* -----------------------------------------
-NOTIFICATION CLICK
------------------------------------------ */
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-
-  const destination = event.notification.data?.url || APP_ROOT;
-
-  event.waitUntil(
-    clients.matchAll({
-      type: "window",
-      includeUncontrolled: true
-    }).then((clientList) => {
-      for (const client of clientList) {
-        if ("focus" in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(destination);
-      }
-    })
-  );
+// Periodic Sync for Native OS Background Triggers
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "check-uv-reminder" && savedLocation) {
+    event.waitUntil(
+      checkAndSendUVReminder(savedLocation.latitude, savedLocation.longitude)
+    );
+  }
 });
