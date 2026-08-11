@@ -73,15 +73,23 @@ function displayUV(uv) {
   if (currentUV < 3) {
     level = "Low";
     advice = "Enjoy the outdoors and keep your usual sun-safety habits.";
+    uvLevelEl.style.backgroundColor = "#d4edda";
+     uvLevelE1.style.color = "#155724";
   } else if (currentUV < 6) {
     level = "Moderate";
     advice = "Protection is recommended. Slip, slop, slap, seek and slide.";
+    uvLevelEl.style.backgroundColor = "#fff3cd";
+    uvLevelE1.style.color = "#212529";
   } else if (currentUV < 8) {
     level = "High";
     advice = "Sun protection is important. Reduce direct sun exposure where possible.";
+    uvLevelEl.style.backgroundColor = "#fa2f42";
+    uvLevelE1.style.color = "#000000";
   } else if (currentUV < 11) {
     level = "Very High";
     advice = "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
+    uvLevelEl.style.backgroundColor = "#e1bee7";
+    uvLevelEl.style.color = "#FFFFFF";
   } else {
     level = "Extreme";
     advice = "Minimise direct sun exposure and take extra care.";
