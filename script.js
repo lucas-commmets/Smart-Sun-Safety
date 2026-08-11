@@ -101,7 +101,7 @@ function displayUV(uv) {
   uvLevelEl.textContent = level;
   $("uvAdvice").textContent = advice;
 
-  if (currentUV >= 3) {
+  if (currentUV >= 0) {
     $("protectionAlert").classList.remove("inactive");
   } else {
     $("protectionAlert").classList.add("inactive");
