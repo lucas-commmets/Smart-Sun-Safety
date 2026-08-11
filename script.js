@@ -69,33 +69,36 @@ function displayUV(uv) {
 
   let level;
   let advice;
+  const uvLevelEl = $("uvLevel");
 
   if (currentUV < 3) {
     level = "Low";
     advice = "Enjoy the outdoors and keep your usual sun-safety habits.";
-    uvLevelEl.style.backgroundColor = "#d4edda";
-     uvLevelE1.style.color = "#155724";
+    uvLevelEl.style.backgroundColor = "#d4edda"; // Light Green
+    uvLevelEl.style.color = "#155724";           // Dark Green Text
   } else if (currentUV < 6) {
     level = "Moderate";
     advice = "Protection is recommended. Slip, slop, slap, seek and slide.";
-    uvLevelEl.style.backgroundColor = "#fff3cd";
-    uvLevelE1.style.color = "#212529";
+    uvLevelEl.style.backgroundColor = "#fff3cd"; // Light Yellow
+    uvLevelEl.style.color = "#856404";           // Dark Yellow/Black Text
   } else if (currentUV < 8) {
     level = "High";
     advice = "Sun protection is important. Reduce direct sun exposure where possible.";
-    uvLevelEl.style.backgroundColor = "#fa2f42";
-    uvLevelE1.style.color = "#000000";
+    uvLevelEl.style.backgroundColor = "#f8d7da"; // Light Red
+    uvLevelEl.style.color = "#721c24";           // Dark Red Text
   } else if (currentUV < 11) {
     level = "Very High";
     advice = "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
-    uvLevelEl.style.backgroundColor = "#e1bee7";
-    uvLevelEl.style.color = "#FFFFFF";
+    uvLevelEl.style.backgroundColor = "#e1bee7"; // Light Purple
+    uvLevelEl.style.color = "#4a148c";           // Dark Purple Text
   } else {
     level = "Extreme";
     advice = "Minimise direct sun exposure and take extra care.";
+    uvLevelEl.style.backgroundColor = "#d1c4e9"; // Deep Purple
+    uvLevelEl.style.color = "#311b92";           // Dark Purple Text
   }
 
-  $("uvLevel").textContent = level;
+  uvLevelEl.textContent = level;
   $("uvAdvice").textContent = advice;
 
   if (currentUV >= 3) {
