@@ -374,6 +374,77 @@ async function requestNotifications() {
   return permission === "granted";
 }
 
+/* -----------------------------
+   PUSH SUBSCRIPTION
+----------------------------- */
+
+function urlBase64ToUint8Array(base64String) {
+
+  const padding = "=".repeat(
+    (4 - base64String.length % 4) % 4
+  );
+
+  const base64 =
+    (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+  const rawData =
+    window.atob(base64);
+
+  return Uint8Array.from(
+    [...rawData].map(char => char.charCodeAt(0))
+  );
+}
+
+
+async function subscribeToPush() {
+
+  if (!("serviceWorker" in navigator)) {
+
+    throw new Error(
+      "Service workers are not supported."
+    );
+
+  }
+
+  if (!("PushManager" in window)) {
+
+    throw new Error(
+      "Push notifications are not supported."
+    );
+
+  }
+
+  const registration =
+    await navigator.serviceWorker.ready;
+
+  let subscription =
+    await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+
+    subscription =
+      await registration.pushManager.subscribe({
+
+        userVisibleOnly: true,
+
+        applicationServerKey:
+          urlBase64ToUint8Array(
+            PUBLIC_VAPID_KEY
+          )
+
+      });
+
+  }
+
+  console.log(
+    "Push subscription created:",
+    subscription
+  );
+
+  return subscription;
+}
 
 function sendNotification(uv) {
 
@@ -425,16 +496,40 @@ async function toggleReminders() {
     }
 
     const allowed =
-      await requestNotifications();
+  await requestNotifications();
 
-    if (!allowed) {
+if (!allowed) {
 
-      alert(
-        "Please allow notifications in your browser to use reminders."
-      );
+  alert(
+    "Please allow notifications in your browser to use reminders."
+  );
 
-      return;
-    }
+  return;
+}
+
+try {
+
+  const subscription =
+    await subscribeToPush();
+
+  console.log(
+    "Push subscription:",
+    subscription
+  );
+
+} catch (error) {
+
+  console.error(
+    "Push subscription failed:",
+    error
+  );
+
+  alert(
+    "Push notifications could not be enabled."
+  );
+
+  return;
+}
 
     remindersEnabled = true;
 
