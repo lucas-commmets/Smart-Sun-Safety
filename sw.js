@@ -217,10 +217,10 @@ self.addEventListener("push", (event) => {
       "It's time to check the UV level.",
 
     icon:
-      "./favicon.ico",
+      "./sun-favicon.ico",
 
     badge:
-      "./favicon.ico",
+      "./sun-favicon.ico",
 
     tag:
       data.tag ||
