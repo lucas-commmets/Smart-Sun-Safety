@@ -24,6 +24,25 @@ let reminderTimer = null;
 const $ = id => document.getElementById(id);
 
 /* -----------------------------
+   TOAST
+----------------------------- */
+
+let toastTimer = null;
+
+function showToast(message) {
+  const toast = $("toast");
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3500);
+}
+
+/* -----------------------------
    UV API
 ----------------------------- */
 
@@ -142,6 +161,14 @@ async function loadManualLocation() {
     $("locationMessage").textContent = "Live UV data is being monitored for this location.";
     if ($("locationSuccess")) $("locationSuccess").classList.add("show");
     startAutoUpdate();
+
+    if (remindersEnabled && navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        action: "UPDATE_LOCATION",
+        latitude,
+        longitude
+      });
+    }
   } catch (error) {
     console.error(error);
     $("locationMessage").textContent =
@@ -177,6 +204,14 @@ function useMyLocation() {
         $("locationMessage").textContent =
           "Live UV data is being monitored for your current location.";
         startAutoUpdate();
+
+        if (remindersEnabled && navigator.serviceWorker?.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            action: "UPDATE_LOCATION",
+            latitude,
+            longitude
+          });
+        }
       } catch (error) {
         $("locationMessage").textContent =
           "Your location was found, but the UV service couldn't be reached.";
@@ -270,10 +305,22 @@ async function toggleReminders() {
     $("reminderToggle").setAttribute("aria-pressed", "true");
     $("reminderStatus").textContent = "On — every 2 hours";
 
+    showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher.");
+
+    // Hand reminders off to the service worker so they keep firing
+    // in the background, even if this tab/page is closed.
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        action: "START_REMINDERS",
+        latitude,
+        longitude
+      });
+    }
+
     // 1. Check immediately when enabled
     await checkReminder();
 
-    // 2. Repeat every 2 hours (2 * 60 * 60 * 1000 ms)
+    // 2. Repeat every 2 hours (2 * 60 * 60 * 1000 ms) while the tab is open
     reminderTimer = setInterval(checkReminder, 2 * 60 * 60 * 1000);
 
   } else {
@@ -284,6 +331,12 @@ async function toggleReminders() {
     $("reminderToggle").classList.remove("on");
     $("reminderToggle").setAttribute("aria-pressed", "false");
     $("reminderStatus").textContent = "Currently off";
+
+    showToast("UV notifications are off.");
+
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ action: "STOP_REMINDERS" });
+    }
   }
 }
 
