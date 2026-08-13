@@ -243,7 +243,7 @@ async function checkReminder() {
     displayUV(uv);
 
     // 2. Only send notification if live UV is 3 or greater
-    if (uv >= 3) {
+    if (uv >= 0) {
       sendNotification(uv);
     }
   } catch (error) {
@@ -282,7 +282,7 @@ async function toggleReminders() {
     await checkReminder();
 
     // Repeat every 2 hours (2 hours * 60 mins * 60 secs * 1000 ms)
-    reminderTimer = setInterval(checkReminder, 2 * 60 * 60 * 1000);
+    reminderTimer = setInterval(checkReminder, 10000s);
 
   } else {
     remindersEnabled = false;
