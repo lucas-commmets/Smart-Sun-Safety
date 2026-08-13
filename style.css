@@ -1231,3 +1231,8 @@ footer strong {
     grid-column: 1 / -1;
   }
 
+  footer {
+    flex-direction: column;
+  }
+
+}
