@@ -313,7 +313,7 @@ function sendNotification(uv) {
   if (Notification.permission === "granted") {
     new Notification("Sun Safety Reminder ☀️", {
       body: `Current UV index is ${uv.toFixed(1)}. Don't forget sunscreen and hat!`,
-      icon: "sun-favicon.ico"
+      icon: "sun-icon-192.png"
     });
   }
 }
