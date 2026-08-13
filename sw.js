@@ -183,44 +183,46 @@ self.addEventListener("fetch", (event) => {
 
 });
 
-/* --------------------------------
-   PUSH NOTIFICATIONS
--------------------------------- */
 
 self.addEventListener("push", (event) => {
 
   let data = {};
 
   try {
+
     data = event.data
       ? event.data.json()
       : {};
+
   } catch (error) {
 
-    data = {
-      title: "Sun Safety Reminder ☀️",
-      body: "It's time to check the UV level."
-    };
+    console.error(
+      "Could not read push notification data:",
+      error
+    );
 
   }
 
 
   const title =
     data.title ||
-    "Sun Safety Reminder ☀️";
+    "☀️ Sun Safety Reminder";
+
+
+  const body =
+    data.body ||
+    "UV is 3 or higher — time to reapply sunscreen.";
 
 
   const options = {
 
-    body:
-      data.body ||
-      "It's time to check the UV level.",
+    body: body,
 
     icon:
-      "./favicon.ico",
+      "./sun-icon-192.png",
 
     badge:
-      "./favicon.ico",
+      "./sun-icon-192.png",
 
     tag:
       data.tag ||
@@ -229,9 +231,11 @@ self.addEventListener("push", (event) => {
     renotify: true,
 
     data: {
+
       url:
         data.url ||
         "./"
+
     }
 
   };
@@ -247,6 +251,8 @@ self.addEventListener("push", (event) => {
   );
 
 });
+
+
 
 
 /* --------------------------------
