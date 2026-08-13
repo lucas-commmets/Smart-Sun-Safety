@@ -261,6 +261,54 @@ async function requestNotifications() {
   return permission === "granted";
 }
 
+/* -----------------------------
+   PERIODIC BACKGROUND SYNC
+   (lets reminders keep firing even
+   after the app is fully closed —
+   Chrome/Edge on Android only, and
+   only for an installed PWA)
+----------------------------- */
+
+async function canUsePeriodicSync() {
+  if (!("serviceWorker" in navigator) || !("PeriodicSyncManager" in window)) {
+    return false;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (!("periodicSync" in registration)) return false;
+
+    const status = await navigator.permissions.query({ name: "periodic-background-sync" });
+    return status.state === "granted";
+  } catch {
+    return false;
+  }
+}
+
+async function registerPeriodicSync() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.periodicSync.register("check-uv-reminder", {
+      minInterval: 2 * 60 * 60 * 1000 // 2 hours (browser may run it less often)
+    });
+    return true;
+  } catch (error) {
+    console.log("Periodic background sync registration failed:", error);
+    return false;
+  }
+}
+
+async function unregisterPeriodicSync() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if ("periodicSync" in registration) {
+      await registration.periodicSync.unregister("check-uv-reminder");
+    }
+  } catch {
+    // Nothing to clean up.
+  }
+}
+
 function sendNotification(uv) {
   if (Notification.permission === "granted") {
     new Notification("Sun Safety Reminder ☀️", {
@@ -303,18 +351,28 @@ async function toggleReminders() {
 
     $("reminderToggle").classList.add("on");
     $("reminderToggle").setAttribute("aria-pressed", "true");
-    $("reminderStatus").textContent = "On — every 2 hours";
-
-    showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher.");
 
     // Hand reminders off to the service worker so they keep firing
-    // in the background, even if this tab/page is closed.
+    // while the tab is backgrounded.
     if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({
         action: "START_REMINDERS",
         latitude,
         longitude
       });
+    }
+
+    // Try to get true background support (survives the app being fully
+    // closed). Only Chrome/Edge on Android, only when installed to the
+    // home screen — everywhere else this quietly stays foreground-only.
+    const periodicSyncAvailable = await canUsePeriodicSync();
+    if (periodicSyncAvailable) {
+      await registerPeriodicSync();
+      $("reminderStatus").textContent = "On — every 2 hours, even when closed";
+      showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher, even if the app is closed.");
+    } else {
+      $("reminderStatus").textContent = "On — every 2 hours while app is open";
+      showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher, while the app is open.");
     }
 
     // 1. Check immediately when enabled
@@ -337,6 +395,7 @@ async function toggleReminders() {
     if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({ action: "STOP_REMINDERS" });
     }
+    await unregisterPeriodicSync();
   }
 }
 
