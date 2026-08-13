@@ -387,7 +387,7 @@ function sendNotification(uv) {
       {
         body:
           `UV is ${Number(uv).toFixed(1)}. Sun protection is recommended.`,
-        icon: "favicon.png"
+        icon: "sun-favicon.png"
       }
     );
 
