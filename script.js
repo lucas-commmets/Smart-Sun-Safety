@@ -282,7 +282,7 @@ async function toggleReminders() {
     await checkReminder();
 
     // Repeat every 2 hours (2 hours * 60 mins * 60 secs * 1000 ms)
-    reminderTimer = setInterval(checkReminder, 10000s);
+    reminderTimer = setInterval(checkReminder, 10000);
 
   } else {
     remindersEnabled = false;
