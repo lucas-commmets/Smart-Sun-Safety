@@ -446,6 +446,46 @@ async function subscribeToPush() {
   return subscription;
 }
 
+/* -----------------------------
+   SEND SUBSCRIPTION TO BACKEND
+----------------------------- */
+
+async function savePushSubscription(subscription) {
+
+  const response = await fetch(
+    "https://smart-sun-safety-backend.onrender.com/send-notification",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        title: "Sun Safety Reminder ☀️",
+        body: "Your sun-safety reminders are now connected."
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Backend request failed."
+    );
+  }
+
+  console.log(
+    "Backend response:",
+    data
+  );
+
+  return data;
+}
+
+
 function sendNotification(uv) {
 
   if (
