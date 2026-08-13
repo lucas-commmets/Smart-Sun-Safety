@@ -1,4 +1,4 @@
-const CACHE_NAME = "sun-safety-tracker-v2";
+const CACHE_NAME = "sun-safety-tracker-v4";
 
 const APP_FILES = [
   "./",
