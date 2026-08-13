@@ -218,20 +218,102 @@ async function getUV(lat, lon) {
    DISPLAY UV
 ========================================================= */
 
+function getUVColorDetails(uvIndex) {
+
+  if (uvIndex < 3) {
+
+    return {
+      level: "Low",
+      color: "var(--uv-low)",
+      className: "uv-tier-low",
+      advice:
+        "Minimal sun protection required. Enjoy the outdoors!"
+    };
+
+  } else if (uvIndex < 6) {
+
+    return {
+      level: "Moderate",
+      color: "var(--uv-mod)",
+      className: "uv-tier-mod",
+      advice:
+        "Protection required! Slip on a shirt, slop on SPF 50+ sunscreen, and wear a hat."
+    };
+
+  } else if (uvIndex < 8) {
+
+    return {
+      level: "High",
+      color: "var(--uv-high)",
+      className: "uv-tier-high",
+      advice:
+        "Protection essential! Seek shade during midday hours and reapply sunscreen every 2 hours."
+    };
+
+  } else if (uvIndex < 11) {
+
+    return {
+      level: "Very High",
+      color: "var(--uv-very-high)",
+      className: "uv-tier-very-high",
+      advice:
+        "Extra protection needed! Avoid direct sun exposure between 10am - 4pm."
+    };
+
+  } else {
+
+    return {
+      level: "Extreme",
+      color: "var(--uv-extreme)",
+      className: "uv-tier-extreme",
+      advice:
+        "Take full precautions! Unprotected skin can burn in minutes."
+    };
+
+  }
+
+}
+
+
 function displayUV(uv) {
 
-  currentUV =
-    Number(uv);
+  currentUV = Number(uv);
 
+  const details =
+    getUVColorDetails(currentUV);
+
+
+  /* UV NUMBER */
 
   $("uvNumber").textContent =
     currentUV.toFixed(1);
 
 
+  $("uvNumber").style.color =
+    details.color;
+
+
+  /* UV LEVEL */
+
+  $("uvLevel").textContent =
+    details.level;
+
+  $("uvLevel").className =
+    `uv-level ${details.className}`;
+
+
+  /* ADVICE */
+
+  $("uvAdvice").textContent =
+    details.advice;
+
+
+  /* GAUGE */
+
   const percentage =
     Math.min(
       Math.max(
-        currentUV / 12 * 100,
+        (currentUV / 11) * 100,
         0
       ),
       100
@@ -241,83 +323,26 @@ function displayUV(uv) {
   $("uvGauge").style.width =
     `${percentage}%`;
 
-
-  let level;
-
-  let advice;
+  $("uvGauge").style.backgroundColor =
+    details.color;
 
 
-  if (currentUV < 3) {
-
-    level = "Low";
-
-    advice =
-      "Enjoy the outdoors and keep your usual sun-safety habits.";
-
-  }
-
-  else if (currentUV < 6) {
-
-    level = "Moderate";
-
-    advice =
-      "Protection is recommended. Slip, slop, slap, seek and slide.";
-
-  }
-
-  else if (currentUV < 8) {
-
-    level = "High";
-
-    advice =
-      "Sun protection is important. Reduce direct sun exposure where possible.";
-
-  }
-
-  else if (currentUV < 11) {
-
-    level = "Very High";
-
-    advice =
-      "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
-
-  }
-
-  else {
-
-    level = "Extreme";
-
-    advice =
-      "Minimise direct sun exposure and take extra care.";
-
-  }
-
-
-  $("uvLevel").textContent =
-    level;
-
-  $("uvAdvice").textContent =
-    advice;
-
+  /* PROTECTION ALERT */
 
   if (currentUV >= 3) {
 
     $("protectionAlert")
-      .classList.remove(
-        "inactive"
-      );
+      .classList.remove("inactive");
 
-  }
-
-  else {
+  } else {
 
     $("protectionAlert")
-      .classList.add(
-        "inactive"
-      );
+      .classList.add("inactive");
 
   }
 
+
+  /* LAST UPDATED */
 
   $("updated").textContent =
     `Updated ${new Date().toLocaleTimeString(
@@ -329,7 +354,6 @@ function displayUV(uv) {
     )}`;
 
 }
-
 
 /* =========================================================
    MANUAL LOCATION
