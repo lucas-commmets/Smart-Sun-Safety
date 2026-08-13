@@ -1,3 +1,5 @@
+const PUBLIC_VAPID_KEY = "BNZIrVXtlz6_k9P8X-556u0G-Wk24saoVR0pOG93QTI3gsu-RMbFcgmjxdrdeii2pJ3hsyLTeXoXT53JvBTfCjA";
+
 const locations = {
   sydney: { name: "Sydney", state: "NSW", latitude: -33.8688, longitude: 151.2093 },
   melbourne: { name: "Melbourne", state: "VIC", latitude: -37.8136, longitude: 144.9631 },
