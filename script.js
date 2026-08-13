@@ -486,25 +486,7 @@ async function savePushSubscription(subscription) {
 }
 
 
-function sendNotification(uv) {
 
-  if (
-    "Notification" in window &&
-    Notification.permission === "granted"
-  ) {
-
-    new Notification(
-      "Sun Safety Reminder ☀️",
-      {
-        body:
-          `UV is ${Number(uv).toFixed(1)}. Sun protection is recommended.`,
-        icon: "favicon.png"
-      }
-    );
-
-  }
-
-}
 
 
 /* -----------------------------
@@ -647,14 +629,36 @@ async function checkReminder() {
 
     if (uv >= 3) {
 
-      sendNotification(uv);
+      const subscription =
+        await subscribeToPush();
 
+      await fetch(
+        "https://smart-sun-safety-backend.onrender.com/send-notification",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            subscription: subscription.toJSON(),
+            uv: uv
+          })
+        }
+      );
+
+      console.log(
+        "Sunscreen reminder sent. UV:",
+        uv
+      );
     }
 
   } catch (error) {
 
-    console.log(
-      "Reminder check failed."
+    console.error(
+      "Reminder check failed:",
+      error
     );
 
   }
