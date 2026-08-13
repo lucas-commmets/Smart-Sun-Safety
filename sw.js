@@ -1,4 +1,4 @@
-const CACHE_NAME = "sun-safety-tracker-v1";
+const CACHE_NAME = "sun-safety-tracker-v2";
 
 const APP_FILES = [
   "./",
@@ -101,8 +101,8 @@ self.addEventListener("fetch", (event) => {
 function sendWelcomeNotification() {
   self.registration.showNotification("UV notifications are on", {
     body: "We'll remind you every 2 hrs when the UV is 3 or higher.",
-    icon: "sun-favicon.ico",
-    badge: "sun-favicon.ico"
+    icon: "sun-icon-192.png",
+    badge: "sun-icon-192.png"
   });
 }
 
@@ -132,8 +132,8 @@ async function checkAndSendUVReminder(lat, lon) {
     if (currentUV >= 3) {
       self.registration.showNotification("Sunscreen Reminder", {
         body: `It's been 2 hrs — UV is ${currentUV.toFixed(1)}. Please reapply sunscreen.`,
-        icon: "sun-favicon.ico",
-        badge: "sun-favicon.ico"
+        icon: "sun-icon-192.png",
+        badge: "sun-icon-192.png"
       });
     }
   } catch (err) {
