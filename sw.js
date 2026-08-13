@@ -99,10 +99,10 @@ self.addEventListener("fetch", (event) => {
 
 // 1. Send welcome notification
 function sendWelcomeNotification() {
-  self.registration.showNotification("Automated UV alerts Active!", {
-    body: "We'll remind you every 2 hour when the UV is 3 or higher.",
-    icon: "favicon.ico",
-    badge: "favicon.ico"
+  self.registration.showNotification("UV notifications are on", {
+    body: "We'll remind you every 2 hrs when the UV is 3 or higher.",
+    icon: "sun-favicon.ico",
+    badge: "sun-favicon.ico"
   });
 }
 
@@ -130,10 +130,10 @@ async function checkAndSendUVReminder(lat, lon) {
     const currentUV = Number(data.hourly.uv_index[closestIndex]);
 
     if (currentUV >= 3) {
-      self.registration.showNotification("Sunscreen Remindeer", {
-        body: `It's been 2 hrs UV is ${currentUV.toFixed(1)} please reapply sunscreen`,
-        icon: "favicon.ico",
-        badge: "favicon.ico"
+      self.registration.showNotification("Sunscreen Reminder", {
+        body: `It's been 2 hrs — UV is ${currentUV.toFixed(1)}. Please reapply sunscreen.`,
+        icon: "sun-favicon.ico",
+        badge: "sun-favicon.ico"
       });
     }
   } catch (err) {
