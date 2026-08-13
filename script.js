@@ -550,13 +550,15 @@ if (!allowed) {
 try {
 
   const subscription =
-    await subscribeToPush();
+  await subscribeToPush();
 
-  console.log(
-    "Push subscription:",
-    subscription
-  );
+console.log(
+  "Push subscription:",
+  subscription
+);
 
+await savePushSubscription(subscription);
+  
 } catch (error) {
 
   console.error(
