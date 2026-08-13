@@ -1,345 +1,284 @@
-const PUBLIC_VAPID_KEY = "BNZIrVXtlz6_k9P8X-556u0G-Wk24saoVR0pOG93QTI3gsu-RMbFcgmjxdrdeii2pJ3hsyLTeXoXT53JvBTfCjA";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>☀️ Sun Safety Tracker</title>
+  <meta name="description" content="Live UV updates and automated protection alerts by Sunsafe Ambassadors.">
 
-const locations = {
-  sydney: { name: "Sydney", state: "NSW", latitude: -33.8688, longitude: 151.2093 },
-  melbourne: { name: "Melbourne", state: "VIC", latitude: -37.8136, longitude: 144.9631 },
-  brisbane: { name: "Brisbane", state: "QLD", latitude: -27.4698, longitude: 153.0251 },
-  perth: { name: "Perth", state: "WA", latitude: -31.9505, longitude: 115.8605 },
-  adelaide: { name: "Adelaide", state: "SA", latitude: -34.9285, longitude: 138.6007 },
-  canberra: { name: "Canberra", state: "ACT", latitude: -35.2809, longitude: 149.1300 },
-  hobart: { name: "Hobart", state: "TAS", latitude: -42.8821, longitude: 147.3272 },
-  darwin: { name: "Darwin", state: "NT", latitude: -12.4634, longitude: 130.8456 },
-  newcastle: { name: "Newcastle", state: "NSW", latitude: -32.9283, longitude: 151.7817 },
-  wollongong: { name: "Wollongong", state: "NSW", latitude: -34.4278, longitude: 150.8931 },
-  geelong: { name: "Geelong", state: "VIC", latitude: -38.1499, longitude: 144.3617 },
-  "gold-coast": { name: "Gold Coast", state: "QLD", latitude: -28.0167, longitude: 153.4000 },
-  "sunshine-coast": { name: "Sunshine Coast", state: "QLD", latitude: -26.6500, longitude: 153.0667 }
-};
+<link rel="apple-touch-icon" href="./sun-icon-192.png?v=3">
+<link rel="apple-touch-icon-precomposed" href="./sun-icon-192.png?v=3">
 
-let latitude = null;
-let longitude = null;
-let currentUV = null;
-let remindersEnabled = false;
-let reminderTimer = null;
-let autoUpdateTimer = null;
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sun Tracker">
 
-const $ = id => document.getElementById(id);
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffb703">
+  <link rel="icon" type="image/x-icon" href="sun-favicon.ico">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 
-/* -----------------------------
-   UV API
------------------------------ */
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-async function getUV(lat, lon) {
-  const url =
-    `https://api.open-meteo.com/v1/forecast` +
-    `?latitude=${lat}` +
-    `&longitude=${lon}` +
-    `&hourly=uv_index` +
-    `&forecast_days=1` +
-    `&timezone=auto`;
+  <div class="background-glow glow-one"></div>
+  <div class="background-glow glow-two"></div>
 
-  const response = await fetch(url);
+  <header class="navbar">
+    <a href="#" class="brand">
+      <span class="brand-icon">☀️</span>
+      <span>
+        <strong>Sun Safety Tracker</strong>
+        <small>Sunsafe Ambassadors</small>
+      </span>
+    </a>
 
-  if (!response.ok) {
-    throw new Error("UV service unavailable");
-  }
+    <div class="live-status">
+      <span></span>
+      LIVE UV
+    </div>
+  </header>
 
-  const data = await response.json();
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">YOUR DAILY SUN-SAFETY COMPANION</span>
+        <h1>
+          Stay sun-smart.<br>
+          <span>Stay protected.</span>
+        </h1>
+        <p>
+          Check your local UV level and get smart reminders
+          to protect yourself when the sun gets stronger.
+        </p>
+        <a href="#tracker" class="hero-button">
+          Check your UV status
+          <span>↓</span>
+        </a>
+      </div>
 
-  if (!data.hourly?.uv_index) {
-    throw new Error("UV data unavailable");
-  }
+      <div class="sun-animation">
+        <div class="sun-ring"></div>
+        <div class="sun-core">☀</div>
+        <div class="sun-ray ray-one"></div>
+        <div class="sun-ray ray-two"></div>
+        <div class="sun-ray ray-three"></div>
+        <div class="sun-ray ray-four"></div>
+        <div class="sun-ray ray-five"></div>
+        <div class="sun-ray ray-six"></div>
+      </div>
+    </section>
 
-  const now = Date.now();
-  let closestIndex = 0;
-  let smallestDifference = Infinity;
+    <section class="tracker" id="tracker">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">LIVE STATUS</span>
+          <h2>Your UV check</h2>
+        </div>
+        <small id="updated">Waiting for location</small>
+      </div>
 
-  data.hourly.time.forEach((time, index) => {
-    const difference = Math.abs(new Date(time).getTime() - now);
+      <div class="tracker-grid">
 
-    if (difference < smallestDifference) {
-      smallestDifference = difference;
-      closestIndex = index;
+        <article class="card location-card">
+          <div class="location-icon">📍</div>
+          <span class="label">CURRENT LOCATION</span>
+          <h3 id="locationName">Location not connected</h3>
+          <p id="locationMessage">
+            Use your location or choose a city manually to check the local UV level.
+          </p>
+
+          <button class="primary-button" id="locationButton">
+            📍 Use My Location
+          </button>
+
+          <div class="or-divider">
+            <span>OR</span>
+          </div>
+
+          <label class="manual-label" for="locationSelect">
+            🏙️ Choose a location
+          </label>
+
+          <select id="locationSelect" class="location-select">
+            <option value="">Select a location...</option>
+            <optgroup label="New South Wales">
+              <option value="sydney">Sydney</option>
+              <option value="newcastle">Newcastle</option>
+              <option value="wollongong">Wollongong</option>
+              <option value="central-coast">Central Coast</option>
+            </optgroup>
+            <optgroup label="Victoria">
+              <option value="melbourne">Melbourne</option>
+              <option value="geelong">Geelong</option>
+            </optgroup>
+            <optgroup label="Queensland">
+              <option value="brisbane">Brisbane</option>
+              <option value="gold-coast">Gold Coast</option>
+              <option value="sunshine-coast">Sunshine Coast</option>
+            </optgroup>
+            <optgroup label="Western Australia">
+              <option value="perth">Perth</option>
+            </optgroup>
+            <optgroup label="South Australia">
+              <option value="adelaide">Adelaide</option>
+            </optgroup>
+            <optgroup label="Australian Capital Territory">
+              <option value="canberra">Canberra</option>
+            </optgroup>
+            <optgroup label="Tasmania">
+              <option value="hobart">Hobart</option>
+            </optgroup>
+            <optgroup label="Northern Territory">
+              <option value="darwin">Darwin</option>
+            </optgroup>
+          </select>
+
+          <button class="secondary-button" id="manualButton">
+            ☀️ Check Selected Location
+          </button>
+
+          <small class="location-success" id="locationSuccess">
+            Location updated!
+          </small>
+        </article>
+
+        <article class="card uv-card">
+          <div class="uv-header">
+            <div>
+              <span class="label">CURRENT UV INDEX</span>
+              <div class="uv-number" id="uvNumber">--</div>
+            </div>
+            <span class="uv-level" id="uvLevel">Waiting</span>
+          </div>
+
+          <div class="uv-gauge">
+            <div class="uv-gauge-fill" id="uvGauge"></div>
+          </div>
+
+          <div class="gauge-labels">
+            <span>0</span>
+            <span>3</span>
+            <span>6</span>
+            <span>8</span>
+            <span>11+</span>
+          </div>
+
+          <p class="uv-advice" id="uvAdvice">
+            Connect your location or choose a city to receive a live UV reading.
+          </p>
+
+          <div class="protection-alert inactive" id="protectionAlert">
+            <span>🛡️</span>
+            <div>
+              <strong>Protection reminder</strong>
+              <small>UV 3+ means sun protection is recommended.</small>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <section class="reminder-section">
+      <div class="reminder-information">
+        <span class="eyebrow">SMART REMINDERS</span>
+        <h2>Never forget your sunscreen.</h2>
+        <p>
+          Turn on 2-hour reminders to check live UV levels
+          and receive a sunscreen reapplication notification
+          whenever UV is 3 or higher.
+        </p>
+      </div>
+
+      <div class="reminder-control">
+        <div class="bell-icon">🔔</div>
+        <div class="reminder-text">
+          <strong>2-Hour Protection Reminders</strong>
+          <small id="reminderStatus">Currently off</small>
+        </div>
+        <button class="toggle" id="reminderToggle" aria-label="Turn reminders on or off" aria-pressed="false">
+          <span></span>
+        </button>
+      </div>
+    </section>
+
+    <div class="install-card" id="installCard" hidden>
+      <div class="install-card-icon">📲</div>
+      <div class="install-card-content">
+        <h3>Install Sun Safety Tracker</h3>
+        <p>Add Sun Safety Tracker to your device for quick access.</p>
+      </div>
+      <button id="installButton" class="install-button" type="button">
+        Install App
+      </button>
+    </div>
+
+    <section class="rules">
+      <div class="section-heading centered">
+        <div>
+          <span class="eyebrow">SUNSMART</span>
+          <h2>The 5 SunSmart Rules</h2>
+          <p>Simple habits that help you stay protected outdoors.</p>
+        </div>
+      </div>
+
+      <div class="rules-grid">
+        <article class="rule-card">
+          <span>👕</span>
+          <strong>Slip</strong>
+          <p>on sun-protective clothing.</p>
+        </article>
+
+        <article class="rule-card">
+          <span>🧴</span>
+          <strong>Slop</strong>
+          <p>on broad-spectrum SPF 50+ sunscreen.</p>
+        </article>
+
+        <article class="rule-card">
+          <span>🧢</span>
+          <strong>Slap</strong>
+          <p>on a broad-brimmed hat.</p>
+        </article>
+
+        <article class="rule-card">
+          <span>🌳</span>
+          <strong>Seek</strong>
+          <p>shade under trees or awnings.</p>
+        </article>
+
+        <article class="rule-card">
+          <span>🕶️</span>
+          <strong>Slide</strong>
+          <p>on wrap-around sunglasses.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>☀️ Sun Safety Tracker</strong>
+    <span>Built for safer days in the sun.</span>
+    <span>© <span id="year"></span> Sunsafe Ambassadors</span>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="script.js"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then(() => console.log("Service Worker registered successfully."))
+          .catch((error) => console.error("Service Worker registration failed:", error));
+      });
     }
-  });
-
-  return data.hourly.uv_index[closestIndex];
-}
-
-
-/* -----------------------------
-   DISPLAY UV & DYNAMIC COLORS
------------------------------ */
-
-function displayUV(uv) {
-  currentUV = Number(uv);
-
-  $("uvNumber").textContent = currentUV.toFixed(1);
-
-  const percentage = Math.min(Math.max((currentUV / 12) * 100, 0), 100);
-  const gaugeEl = $("uvGauge");
-  gaugeEl.style.width = `${percentage}%`;
-
-  let level;
-  let advice;
-  let colorHex;
-
-  if (currentUV < 3) {
-    level = "Low";
-    advice = "Enjoy the outdoors and keep your usual sun-safety habits.";
-    colorHex = "#52b788"; // Green
-  } else if (currentUV < 6) {
-    level = "Moderate";
-    advice = "Protection is recommended. Slip, slop, slap, seek and slide.";
-    colorHex = "#ffb703"; // Yellow / Gold
-  } else if (currentUV < 8) {
-    level = "High";
-    advice = "Sun protection is important. Reduce direct sun exposure where possible.";
-    colorHex = "#fb8500"; // Orange
-  } else if (currentUV < 11) {
-    level = "Very High";
-    advice = "Extra protection is needed. Seek shade and avoid prolonged direct sun.";
-    colorHex = "#d90429"; // Red
-  } else {
-    level = "Extreme";
-    advice = "Minimise direct sun exposure and take extra care.";
-    colorHex = "#7209b7"; // Purple
-  }
-
-  $("uvLevel").textContent = level;
-  $("uvAdvice").textContent = advice;
-  $("uvNumber").style.color = colorHex;
-  gaugeEl.style.backgroundColor = colorHex;
-
-  if (currentUV >= 3) {
-    $("protectionAlert").classList.remove("inactive");
-  } else {
-    $("protectionAlert").classList.add("inactive");
-  }
-
-  $("updated").textContent =
-    `Updated ${new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit"
-    })}`;
-}
-
-
-/* -----------------------------
-   LOAD A MANUAL LOCATION
------------------------------ */
-
-async function loadManualLocation() {
-  const selected = $("locationSelect").value;
-
-  if (!selected) {
-    alert("Please choose a location first.");
-    return;
-  }
-
-  const location = locations[selected];
-  if (!location) return;
-
-  $("locationName").textContent = `${location.name}, ${location.state}`;
-  $("locationMessage").textContent = "Getting the latest UV level...";
-  $("manualButton").disabled = true;
-
-  try {
-    const uv = await getUV(location.latitude, location.longitude);
-
-    latitude = location.latitude;
-    longitude = location.longitude;
-
-    displayUV(uv);
-
-    $("locationMessage").textContent = "Live UV data is being monitored for this location.";
-    $("locationSuccess").classList.add("show");
-
-    startAutoUpdate();
-  } catch (error) {
-    console.error(error);
-    $("locationMessage").textContent =
-      "The UV service could not be reached. Your network may be blocking it.";
-  }
-
-  $("manualButton").disabled = false;
-}
-
-
-/* -----------------------------
-   DEVICE LOCATION
------------------------------ */
-
-function useMyLocation() {
-  if (!navigator.geolocation) {
-    alert("Location isn't supported. Please choose a location manually.");
-    return;
-  }
-
-  $("locationButton").disabled = true;
-  $("locationButton").textContent = "📡 Finding location...";
-
-  navigator.geolocation.getCurrentPosition(
-    async position => {
-      latitude = position.coords.latitude;
-      longitude = position.coords.longitude;
-
-      $("locationName").textContent = "Your current location";
-
-      try {
-        const uv = await getUV(latitude, longitude);
-        displayUV(uv);
-
-        $("locationMessage").textContent = "Live UV data is being monitored for your current location.";
-        startAutoUpdate();
-      } catch (error) {
-        $("locationMessage").textContent = "Your location was found, but the UV service couldn't be reached.";
-      }
-
-      $("locationButton").disabled = false;
-      $("locationButton").textContent = "🔄 Refresh My Location & UV";
-    },
-    () => {
-      $("locationButton").disabled = false;
-      $("locationButton").textContent = "📍 Use My Location";
-
-      alert("Location access was unavailable. Choose a location manually instead.");
-    }
-  );
-}
-
-
-/* -----------------------------
-   AUTOMATIC UV UPDATES
------------------------------ */
-
-function startAutoUpdate() {
-  clearInterval(autoUpdateTimer);
-  autoUpdateTimer = setInterval(refreshUV, 15 * 60 * 1000);
-}
-
-async function refreshUV() {
-  if (latitude === null || longitude === null) return;
-
-  try {
-    const uv = await getUV(latitude, longitude);
-    displayUV(uv);
-  } catch (error) {
-    console.log("Automatic update unavailable.");
-  }
-}
-
-
-/* -----------------------------
-   NOTIFICATIONS & REMINDERS
------------------------------ */
-
-async function requestNotifications() {
-  if (!("Notification" in window)) {
-    alert("Notifications aren't supported by this browser.");
-    return false;
-  }
-
-  const permission = await Notification.requestPermission();
-  return permission === "granted";
-}
-
-async function sendNotification(title, body) {
-  if (!("Notification" in window) || Notification.permission !== "granted") {
-    return;
-  }
-
-  if ("serviceWorker" in navigator) {
-    const registration = await navigator.serviceWorker.ready;
-    registration.showNotification(title, {
-      body: body,
-      icon: "sun-icon-192.png",
-      badge: "sun-icon-192.png",
-      tag: "sun-safety-reminder",
-      renotify: true
-    });
-  }
-}
-
-async function toggleReminders() {
-  if (!remindersEnabled) {
-    if (latitude === null || longitude === null) {
-      alert("Please choose a location first.");
-      return;
-    }
-
-    const allowed = await requestNotifications();
-
-    if (!allowed) {
-      alert("Please allow notifications in your browser to use reminders.");
-      return;
-    }
-
-    remindersEnabled = true;
-
-    $("reminderToggle").classList.add("on");
-    $("reminderToggle").setAttribute("aria-pressed", "true");
-    $("reminderStatus").textContent = "On — every 2 hours";
-
-    await sendNotification(
-      "Sunscreen Reminder ☀️",
-      "Automated UV alerts are active! We'll remind you every 2 hours when UV is 3 or higher."
-    );
-
-    await checkReminder();
-    reminderTimer = setInterval(checkReminder, 2 * 60 * 60 * 1000);
-
-  } else {
-    remindersEnabled = false;
-    clearInterval(reminderTimer);
-
-    $("reminderToggle").classList.remove("on");
-    $("reminderToggle").setAttribute("aria-pressed", "false");
-    $("reminderStatus").textContent = "Currently off";
-  }
-}
-
-async function checkReminder() {
-  if (latitude === null || longitude === null) return;
-
-  try {
-    const uv = await getUV(latitude, longitude);
-    displayUV(uv);
-
-    if (uv >= 3) {
-      await sendNotification(
-        "Sun Safety Reminder ☀️",
-        `Current UV index is ${Number(uv).toFixed(1)}. Time to reapply sunscreen and seek shade!`
-      );
-    }
-  } catch (error) {
-    console.log("Reminder check failed.");
-  }
-}
-
-
-/* -----------------------------
-   EVENT LISTENERS
------------------------------ */
-
-if ($("locationButton")) {
-  $("locationButton").addEventListener("click", useMyLocation);
-}
-
-if ($("manualButton")) {
-  $("manualButton").addEventListener("click", loadManualLocation);
-}
-
-if ($("reminderToggle")) {
-  $("reminderToggle").addEventListener("click", toggleReminders);
-}
-
-
-/* -----------------------------
-   FOOTER YEAR
------------------------------ */
-
-if ($("year")) {
-  $("year").textContent = new Date().getFullYear();
-}
+  </script>
+</body>
+</html>
