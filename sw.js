@@ -1,4 +1,4 @@
-const CACHE_NAME = "sun-safety-tracker-v3";
+const CACHE_NAME = "sun-safety-tracker-v2";
 
 const APP_FILES = [
   "./",
@@ -183,46 +183,44 @@ self.addEventListener("fetch", (event) => {
 
 });
 
+/* --------------------------------
+   PUSH NOTIFICATIONS
+-------------------------------- */
 
 self.addEventListener("push", (event) => {
 
   let data = {};
 
   try {
-
     data = event.data
       ? event.data.json()
       : {};
-
   } catch (error) {
 
-    console.error(
-      "Could not read push notification data:",
-      error
-    );
+    data = {
+      title: "Sun Safety Reminder ☀️",
+      body: "It's time to check the UV level."
+    };
 
   }
 
 
   const title =
     data.title ||
-    "☀️ Sun Safety Reminder";
-
-
-  const body =
-    data.body ||
-    "UV is 3 or higher — time to reapply sunscreen.";
+    "Sun Safety Reminder ☀️";
 
 
   const options = {
 
-    body: body,
+    body:
+      data.body ||
+      "It's time to check the UV level.",
 
     icon:
-      "./sun-icon-192.png",
+      "./favicon.ico",
 
     badge:
-      "./sun-icon-192.png",
+      "./favicon.ico",
 
     tag:
       data.tag ||
@@ -231,11 +229,9 @@ self.addEventListener("push", (event) => {
     renotify: true,
 
     data: {
-
       url:
         data.url ||
         "./"
-
     }
 
   };
@@ -251,8 +247,6 @@ self.addEventListener("push", (event) => {
   );
 
 });
-
-
 
 
 /* --------------------------------
