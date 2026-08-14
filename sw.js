@@ -1,4 +1,6 @@
-const CACHE_NAME = "sun-safety-tracker-v2";
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
+const CACHE_NAME = "sun-safety-tracker-v3";
 
 const APP_FILES = [
   "./",
