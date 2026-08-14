@@ -117,15 +117,18 @@ function getEligibleSubscribers(rows) {
     const tags = parseTagsField(row.tags);
 
     if (tags.reminders_enabled !== "true") continue;
-    if (!tags.latitude || !tags.longitude) continue;
+    if (!tags.loc) continue;
+
+    const [latStr, lonStr] = tags.loc.split(",");
+    if (!latStr || !lonStr) continue;
 
     const subscriptionId = row.id || row.subscription_id || row.player_id;
     if (!subscriptionId) continue;
 
     eligible.push({
       subscriptionId,
-      latitude: Number(tags.latitude),
-      longitude: Number(tags.longitude),
+      latitude: Number(latStr),
+      longitude: Number(lonStr),
       lastReminderSent: tags.last_reminder_sent ? Number(tags.last_reminder_sent) : null
     });
   }
@@ -145,7 +148,7 @@ async function getUV(lat, lon) {
 
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&hourly=uv_index&forecast_days=1&timezone=auto`;
+    `&hourly=uv_index&forecast_days=1&timezone=UTC`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`UV lookup failed for ${key}`);
@@ -156,7 +159,9 @@ async function getUV(lat, lon) {
   let closestIndex = 0;
   let smallestDiff = Infinity;
   data.hourly.time.forEach((time, i) => {
-    const diff = Math.abs(new Date(time).getTime() - now);
+    // Times come back UTC-labeled but without a "Z" suffix, so append
+    // one to make sure JS parses them as UTC rather than local time.
+    const diff = Math.abs(new Date(time + "Z").getTime() - now);
     if (diff < smallestDiff) {
       smallestDiff = diff;
       closestIndex = i;
