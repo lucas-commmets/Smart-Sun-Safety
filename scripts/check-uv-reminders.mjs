@@ -202,6 +202,13 @@ async function updateLastReminderTag(subscriptionId, timestamp) {
 async function main() {
   console.log("Exporting subscriptions...");
   const rows = await exportSubscriptions();
+
+  console.log(`Total rows exported: ${rows.length}`);
+  if (rows.length > 0) {
+    console.log("Column headers:", Object.keys(rows[0]).join(", "));
+    console.log("First row (raw):", JSON.stringify(rows[0], null, 2));
+  }
+
   const subscribers = getEligibleSubscribers(rows);
   console.log(`${subscribers.length} subscriber(s) with reminders enabled.`);
 
