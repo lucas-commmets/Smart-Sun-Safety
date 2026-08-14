@@ -274,9 +274,12 @@ async function subscribeToPush(lat, lon) {
           return;
         }
 
+        // Clean up the old separate latitude/longitude tags from before
+        // we combined them into "loc" (stays within the 3-tag limit).
+        await OneSignal.User.removeTags(["latitude", "longitude"]);
+
         await OneSignal.User.addTags({
-          latitude: String(lat),
-          longitude: String(lon),
+          loc: `${lat},${lon}`,
           reminders_enabled: "true"
         });
 
