@@ -279,7 +279,7 @@ async function subscribeToPush(lat, lon) {
         await OneSignal.User.removeTags(["latitude", "longitude"]);
 
         await OneSignal.User.addTags({
-          loc: `${lat},${lon}`,
+          loc: `${lat}_${lon}`,
           reminders_enabled: "true"
         });
 
