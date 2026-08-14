@@ -251,16 +251,6 @@ async function refreshUV() {
    NOTIFICATIONS & REMINDERS
 ----------------------------- */
 
-async function requestNotifications() {
-  if (!("Notification" in window)) {
-    alert("Notifications aren't supported by this browser.");
-    return false;
-  }
-
-  const permission = await Notification.requestPermission();
-  return permission === "granted";
-}
-
 /* -----------------------------
    PERIODIC BACKGROUND SYNC
    (lets reminders keep firing even
@@ -269,50 +259,54 @@ async function requestNotifications() {
    only for an installed PWA)
 ----------------------------- */
 
-async function canUsePeriodicSync() {
-  if (!("serviceWorker" in navigator) || !("PeriodicSyncManager" in window)) {
-    return false;
-  }
+/* -----------------------------
+   ONESIGNAL (real background push)
+----------------------------- */
 
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    if (!("periodicSync" in registration)) return false;
+async function subscribeToPush(lat, lon) {
+  return new Promise((resolve) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        const permission = await OneSignal.Notifications.requestPermission();
+        if (!permission) {
+          resolve(false);
+          return;
+        }
 
-    const status = await navigator.permissions.query({ name: "periodic-background-sync" });
-    return status.state === "granted";
-  } catch {
-    return false;
-  }
-}
+        await OneSignal.User.addTags({
+          latitude: String(lat),
+          longitude: String(lon),
+          reminders_enabled: "true"
+        });
 
-async function registerPeriodicSync() {
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    await registration.periodicSync.register("check-uv-reminder", {
-      minInterval: 2 * 60 * 60 * 1000 // 2 hours (browser may run it less often)
+        resolve(true);
+      } catch (error) {
+        console.log("OneSignal subscribe failed:", error);
+        resolve(false);
+      }
     });
-    return true;
-  } catch (error) {
-    console.log("Periodic background sync registration failed:", error);
-    return false;
-  }
+  });
 }
 
-async function unregisterPeriodicSync() {
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    if ("periodicSync" in registration) {
-      await registration.periodicSync.unregister("check-uv-reminder");
-    }
-  } catch {
-    // Nothing to clean up.
-  }
+async function unsubscribeFromPush() {
+  return new Promise((resolve) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        await OneSignal.User.addTag("reminders_enabled", "false");
+      } catch (error) {
+        console.log("OneSignal unsubscribe failed:", error);
+      }
+      resolve();
+    });
+  });
 }
 
 function sendNotification(uv) {
   if (Notification.permission === "granted") {
     new Notification("Sun Safety Reminder ☀️", {
-      body: `Current UV index is ${uv.toFixed(1)}. It's been 2 hrs. Don't forget to reapply sunscreen and hat!`,
+      body: `Current UV index is ${uv.toFixed(1)}. Don't forget sunscreen and hat!`,
       icon: "sun-icon-192.png"
     });
   }
@@ -341,9 +335,9 @@ async function toggleReminders() {
       return;
     }
 
-    const allowed = await requestNotifications();
-    if (!allowed) {
-      alert("Please allow notifications in your browser to use reminders.");
+    const subscribed = await subscribeToPush(latitude, longitude);
+    if (!subscribed) {
+      alert("Please allow notifications to use reminders.");
       return;
     }
 
@@ -351,9 +345,12 @@ async function toggleReminders() {
 
     $("reminderToggle").classList.add("on");
     $("reminderToggle").setAttribute("aria-pressed", "true");
+    $("reminderStatus").textContent = "On — every 2 hours, even when closed";
 
-    // Hand reminders off to the service worker so they keep firing
-    // while the tab is backgrounded.
+    showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher, even if the app is closed.");
+
+    // Also keep a local foreground check running for while the app is open,
+    // so you don't have to wait on the background push schedule.
     if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({
         action: "START_REMINDERS",
@@ -362,23 +359,7 @@ async function toggleReminders() {
       });
     }
 
-    // Try to get true background support (survives the app being fully
-    // closed). Only Chrome/Edge on Android, only when installed to the
-    // home screen — everywhere else this quietly stays foreground-only.
-    const periodicSyncAvailable = await canUsePeriodicSync();
-    if (periodicSyncAvailable) {
-      await registerPeriodicSync();
-      $("reminderStatus").textContent = "On — every 2 hours, even when closed";
-      showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher, even if the app is closed.");
-    } else {
-      $("reminderStatus").textContent = "On — every 2 hours while app is open";
-      showToast("UV notifications are on. We'll remind you every 2 hrs when the UV is 3 or higher, while the app is open.");
-    }
-
-    // 1. Check immediately when enabled
     await checkReminder();
-
-    // 2. Repeat every 2 hours (2 * 60 * 60 * 1000 ms) while the tab is open
     reminderTimer = setInterval(checkReminder, 2 * 60 * 60 * 1000);
 
   } else {
@@ -395,7 +376,7 @@ async function toggleReminders() {
     if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({ action: "STOP_REMINDERS" });
     }
-    await unregisterPeriodicSync();
+    await unsubscribeFromPush();
   }
 }
 
