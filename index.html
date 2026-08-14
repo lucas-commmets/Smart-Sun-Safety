@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="./sun-icon-192.png?v=3">
 <link rel="apple-touch-icon-precomposed" href="./sun-icon-192.png?v=3">
 
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sun Tracker">
@@ -22,6 +23,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "54fa37f8-b69e-4dc7-94a1-fd605fc8d81e",
+        safari_web_id: "web.onesignal.auto.0908e376-c893-48cd-92f7-007572df5c49",
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+        serviceWorkerPath: "Smart-Sun-Safety/sw.js",
+        serviceWorkerParam: { scope: "/Smart-Sun-Safety/" }
+      });
+    });
+  </script>
 </head>
 <body>
 
