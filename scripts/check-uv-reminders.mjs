@@ -119,7 +119,7 @@ function getEligibleSubscribers(rows) {
     if (tags.reminders_enabled !== "true") continue;
     if (!tags.loc) continue;
 
-    const [latStr, lonStr] = tags.loc.split(",");
+    const [latStr, lonStr] = tags.loc.split("_");
     if (!latStr || !lonStr) continue;
 
     const subscriptionId = row.id || row.subscription_id || row.player_id;
