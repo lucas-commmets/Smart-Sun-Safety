@@ -91,17 +91,30 @@ function splitCsvLine(line) {
    2. Filter to reminder-eligible subscribers
 ----------------------------- */
 
+// OneSignal's CSV export writes tags in its own loose, unquoted format —
+// e.g. {latitude:-33.8688,longitude:151.2093,reminders_enabled:true} —
+// which is NOT valid JSON, so it needs its own small parser.
+function parseTagsField(raw) {
+  if (!raw) return {};
+  const inner = raw.trim().replace(/^\{/, "").replace(/\}$/, "");
+  if (!inner) return {};
+
+  const tags = {};
+  for (const pair of inner.split(",")) {
+    const idx = pair.indexOf(":");
+    if (idx === -1) continue;
+    const key = pair.slice(0, idx).trim();
+    const value = pair.slice(idx + 1).trim();
+    tags[key] = value;
+  }
+  return tags;
+}
+
 function getEligibleSubscribers(rows) {
   const eligible = [];
 
   for (const row of rows) {
-    let tags = {};
-    try {
-      // OneSignal exports the tags column as a JSON string.
-      tags = row.tags ? JSON.parse(row.tags) : {};
-    } catch {
-      continue;
-    }
+    const tags = parseTagsField(row.tags);
 
     if (tags.reminders_enabled !== "true") continue;
     if (!tags.latitude || !tags.longitude) continue;
