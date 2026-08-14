@@ -312,7 +312,7 @@ async function unregisterPeriodicSync() {
 function sendNotification(uv) {
   if (Notification.permission === "granted") {
     new Notification("Sun Safety Reminder ☀️", {
-      body: `Current UV index is ${uv.toFixed(1)}. Don't forget sunscreen and hat!`,
+      body: `Current UV index is ${uv.toFixed(1)}. It's been 2 hrs. Don't forget to reapply sunscreen and hat!`,
       icon: "sun-icon-192.png"
     });
   }
