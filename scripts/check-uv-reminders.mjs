@@ -239,10 +239,9 @@ async function main() {
   const rows = await exportSubscriptions();
 
   console.log(`Total rows exported: ${rows.length}`);
-  if (rows.length > 0) {
-    console.log("Column headers:", Object.keys(rows[0]).join(", "));
-    console.log("First row (raw):", JSON.stringify(rows[0], null, 2));
-  }
+  rows.forEach((row, i) => {
+    console.log(`Row ${i}: id=${row.id}, device_type=${row.device_type}, tags=${row.tags}`);
+  });
 
   const subscribers = getEligibleSubscribers(rows);
   console.log(`${subscribers.length} subscriber(s) with reminders enabled.`);
@@ -251,8 +250,8 @@ async function main() {
   let sentCount = 0;
 
   for (const sub of subscribers) {
-    const due =
-      sub.lastReminderSent === null || now - sub.lastReminderSent >= TWO_HOURS_MS;
+    const due = true; // TEMP: cooldown bypassed for testing — restore the real check after
+    // const due = sub.lastReminderSent === null || now - sub.lastReminderSent >= TWO_HOURS_MS;
 
     if (!due) continue;
 
