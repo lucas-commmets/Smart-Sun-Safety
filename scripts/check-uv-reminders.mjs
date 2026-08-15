@@ -44,8 +44,25 @@ async function exportSubscriptions() {
   const { csv_file_url } = await res.json();
   if (!csv_file_url) throw new Error("No csv_file_url returned.");
 
+  // OneSignal can return this URL slightly before the file has finished
+  // being written on their end — give it a moment before fetching.
+  await new Promise((resolve) => setTimeout(resolve, 4000));
+
   const fileRes = await fetch(csv_file_url);
+  if (!fileRes.ok) {
+    throw new Error(`Fetching export file failed: ${fileRes.status}`);
+  }
+
   const gzipped = Buffer.from(await fileRes.arrayBuffer());
+
+  // Gzip files always start with bytes 0x1f 0x8b. If they don't,
+  // something other than the expected file came back — log it so
+  // it's actually visible next time instead of a bare zlib error.
+  if (gzipped.length < 2 || gzipped[0] !== 0x1f || gzipped[1] !== 0x8b) {
+    console.error("Response wasn't gzip. First 300 bytes:", gzipped.toString("utf-8", 0, 300));
+    throw new Error("Export file wasn't valid gzip — see logged content above.");
+  }
+
   const csvText = zlib.gunzipSync(gzipped).toString("utf-8");
 
   return parseCsv(csvText);
@@ -243,7 +260,7 @@ async function main() {
       const uv = await getUV(sub.latitude, sub.longitude);
       console.log(`${sub.subscriptionId}: UV ${uv.toFixed(1)} at (${sub.latitude}, ${sub.longitude})`);
 
-      if (uv >= 3) {
+      if (uv >= -1) { // TEMP: forced for testing — change back to 3 after
         const sent = await sendReminder(sub.subscriptionId, uv);
         if (sent) {
           await updateLastReminderTag(sub.subscriptionId, now);
