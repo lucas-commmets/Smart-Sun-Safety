@@ -250,8 +250,8 @@ async function main() {
   let sentCount = 0;
 
   for (const sub of subscribers) {
-    const due = true; // TEMP: cooldown bypassed for testing — restore the real check after
-    // const due = sub.lastReminderSent === null || now - sub.lastReminderSent >= TWO_HOURS_MS;
+    const due =
+      sub.lastReminderSent === null || now - sub.lastReminderSent >= TWO_HOURS_MS;
 
     if (!due) continue;
 
@@ -259,7 +259,7 @@ async function main() {
       const uv = await getUV(sub.latitude, sub.longitude);
       console.log(`${sub.subscriptionId}: UV ${uv.toFixed(1)} at (${sub.latitude}, ${sub.longitude})`);
 
-      if (uv >= -1) { // TEMP: forced for testing — change back to 3 after
+      if (uv >= 3) {
         const sent = await sendReminder(sub.subscriptionId, uv);
         if (sent) {
           await updateLastReminderTag(sub.subscriptionId, now);
