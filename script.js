@@ -24,6 +24,29 @@ let reminderTimer = null;
 const $ = id => document.getElementById(id);
 
 /* -----------------------------
+   SAVED LOCATION (persists across closing/reopening the app)
+----------------------------- */
+
+const LOCATION_STORAGE_KEY = "sunSafetySavedLocation";
+
+function saveLocationToStorage(data) {
+  try {
+    localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage unavailable (private browsing etc.) — not critical, just skip.
+  }
+}
+
+function loadLocationFromStorage() {
+  try {
+    const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/* -----------------------------
    TOAST
 ----------------------------- */
 
@@ -162,6 +185,8 @@ async function loadManualLocation() {
     if ($("locationSuccess")) $("locationSuccess").classList.add("show");
     startAutoUpdate();
 
+    saveLocationToStorage({ type: "manual", key: selected });
+
     if (remindersEnabled && navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({
         action: "UPDATE_LOCATION",
@@ -204,6 +229,8 @@ function useMyLocation() {
         $("locationMessage").textContent =
           "Live UV data is being monitored for your current location.";
         startAutoUpdate();
+
+        saveLocationToStorage({ type: "geo" });
 
         if (remindersEnabled && navigator.serviceWorker?.controller) {
           navigator.serviceWorker.controller.postMessage({
@@ -398,3 +425,19 @@ $("reminderToggle").addEventListener("click", toggleReminders);
 if ($("year")) {
   $("year").textContent = new Date().getFullYear();
 }
+
+/* -----------------------------
+   RESTORE SAVED LOCATION ON LOAD
+----------------------------- */
+
+(function restoreSavedLocation() {
+  const saved = loadLocationFromStorage();
+  if (!saved) return;
+
+  if (saved.type === "manual" && locations[saved.key]) {
+    $("locationSelect").value = saved.key;
+    loadManualLocation();
+  } else if (saved.type === "geo") {
+    useMyLocation();
+  }
+})();
