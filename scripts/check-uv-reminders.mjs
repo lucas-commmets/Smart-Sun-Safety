@@ -28,24 +28,40 @@ const oneSignalHeaders = {
 ----------------------------- */
 
 async function exportSubscriptions() {
-  const res = await fetch(
-    `https://api.onesignal.com/players/csv_export?app_id=${APP_ID}`,
-    {
-      method: "POST",
-      headers: oneSignalHeaders,
-      body: JSON.stringify({})
+  const maxAttempts = 4;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const res = await fetch(
+      `https://api.onesignal.com/players/csv_export?app_id=${APP_ID}`,
+      {
+        method: "POST",
+        headers: oneSignalHeaders,
+        body: JSON.stringify({})
+      }
+    );
+
+    if (res.ok) {
+      const { csv_file_url } = await res.json();
+      if (!csv_file_url) throw new Error("No csv_file_url returned.");
+      return await downloadAndParseExport(csv_file_url);
     }
-  );
 
-  if (!res.ok) {
-    throw new Error(`csv_export failed: ${res.status} ${await res.text()}`);
+    const errorText = await res.text();
+    const isBusy = res.status === 400 && errorText.includes("already running another CSV export");
+
+    if (isBusy && attempt < maxAttempts) {
+      console.log(`Export already in progress, retrying (attempt ${attempt}/${maxAttempts})...`);
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      continue;
+    }
+
+    throw new Error(`csv_export failed: ${res.status} ${errorText}`);
   }
+}
 
-  const { csv_file_url } = await res.json();
-  if (!csv_file_url) throw new Error("No csv_file_url returned.");
-
+async function downloadAndParseExport(csv_file_url) {
   // OneSignal can return this URL slightly before the file has finished
-  // being written on their end — give it a moment before fetching.
+  // being written on their end â give it a moment before fetching.
   await new Promise((resolve) => setTimeout(resolve, 4000));
 
   const fileRes = await fetch(csv_file_url);
@@ -56,19 +72,18 @@ async function exportSubscriptions() {
   const gzipped = Buffer.from(await fileRes.arrayBuffer());
 
   // Gzip files always start with bytes 0x1f 0x8b. If they don't,
-  // something other than the expected file came back — log it so
+  // something other than the expected file came back â log it so
   // it's actually visible next time instead of a bare zlib error.
   if (gzipped.length < 2 || gzipped[0] !== 0x1f || gzipped[1] !== 0x8b) {
     console.error("Response wasn't gzip. First 300 bytes:", gzipped.toString("utf-8", 0, 300));
-    throw new Error("Export file wasn't valid gzip — see logged content above.");
+    throw new Error("Export file wasn't valid gzip â see logged content above.");
   }
 
   const csvText = zlib.gunzipSync(gzipped).toString("utf-8");
-
   return parseCsv(csvText);
 }
 
-// Minimal CSV parser — good enough for OneSignal's export (no embedded
+// Minimal CSV parser â good enough for OneSignal's export (no embedded
 // newlines in fields we care about). Handles quoted fields with commas.
 function parseCsv(text) {
   const lines = text.trim().split("\n");
@@ -108,8 +123,8 @@ function splitCsvLine(line) {
    2. Filter to reminder-eligible subscribers
 ----------------------------- */
 
-// OneSignal's CSV export writes tags in its own loose, unquoted format —
-// e.g. {latitude:-33.8688,longitude:151.2093,reminders_enabled:true} —
+// OneSignal's CSV export writes tags in its own loose, unquoted format â
+// e.g. {latitude:-33.8688,longitude:151.2093,reminders_enabled:true} â
 // which is NOT valid JSON, so it needs its own small parser.
 function parseTagsField(raw) {
   if (!raw) return {};
@@ -201,10 +216,11 @@ async function sendReminder(subscriptionId, uv) {
     body: JSON.stringify({
       app_id: APP_ID,
       include_subscription_ids: [subscriptionId],
-      headings: { en: "Sun Safety Reminder ☀️" },
+      headings: { en: "Sun Safety Reminder âï¸" },
       contents: {
         en: `Current UV index is ${uv.toFixed(1)}. Don't forget sunscreen and a hat!`
-      }
+      },
+      url: "https://lucas-commmets.github.io/Smart-Sun-Safety/"
     })
   });
 
